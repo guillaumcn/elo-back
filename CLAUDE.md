@@ -12,6 +12,7 @@ Full specs: [business-specifications.md](./business-specifications.md) and [tech
 - **PostgreSQL 16** (via Docker Compose)
 - **Liquibase** for migrations
 - **Spring Security + JWT** (jjwt library) for auth
+- **Lombok** for boilerplate reduction
 - **Testcontainers**, **JUnit 5**, **Mockito**, **Cucumber** for testing
 
 ## Build & Run
@@ -36,29 +37,91 @@ docker compose up -d
 
 ```
 com.elo
-├── domain/                    # Pure business logic — NO framework dependencies
-│   ├── model/                 # Aggregates, Entities, Value Objects
-│   ├── port/in/               # Inbound ports (use case interfaces)
-│   ├── port/out/              # Outbound ports (repository interfaces)
-│   ├── service/               # Domain services (use case implementations)
-│   └── exception/             # Domain exceptions
-├── application/               # DTOs, mappers
-│   ├── dto/
-│   └── mapper/
-├── infrastructure/            # Framework-dependent adapters
-│   ├── adapter/in/web/        # REST controllers
-│   ├── adapter/out/persistence/ # JPA repositories & entities
-│   ├── configuration/         # Spring beans, security config
-│   ├── security/              # Security configuration
-│   └── migration/             # Liquibase changelogs
+├── domain/                        # Pure business logic — NO framework dependencies
+│   └── {context}/
+│       ├── model/                 # Aggregates, Entities, Value Objects
+│       └── exception/             # Domain exceptions
+├── application/                   # Use cases, commands, DTOs, mappers
+│   └── {context}/
+│       ├── port/in/               # Inbound ports (use case interfaces, e.g. RegisterUserPort)
+│       ├── port/out/              # Outbound ports (repository interfaces, e.g. UserRepositoryPort)
+│       ├── usecase/               # Use case implementations (implement port/in interfaces)
+│       ├── command/               # Command objects (use case inputs)
+│       ├── dto/                   # Request/Response DTOs (for controllers only)
+│       └── mapper/                # Domain ↔ DTO mapping
+├── infrastructure/                # Framework-dependent adapters
+│   ├── adapter/in/web/            # REST controllers (inbound adapters)
+│   ├── adapter/out/persistence/   # JPA repositories & entities (outbound adapters)
+│   ├── configuration/             # Spring beans, security config
+│   └── security/                  # JWT, password hashing
 ```
 
-### Key Rules
+### Lombok Conventions
 
-- **Domain layer has ZERO dependencies** on Spring, JPA, or infrastructure
-- Dependencies always point **inward** — infrastructure depends on domain, never the reverse
-- Inbound adapters (controllers) call inbound ports; outbound adapters (JPA repos) implement outbound ports
+- **`@RequiredArgsConstructor`** on all Spring beans and service classes (controllers, adapters, use cases) — replaces manual constructor injection
+- **`@Getter` + `@Builder` on constructor** for domain models and JPA entities — prefer `@Builder` on the all-args constructor, not on the class
+- **`@NoArgsConstructor(access = PROTECTED)`** on JPA entities (required by JPA)
+- **`@NoArgsConstructor(access = PRIVATE)`** on utility/mapper classes — replaces private constructor
+- **Do NOT use Lombok on records** — Java records already provide accessors, equals/hashCode, toString
+- **Do NOT use `@Setter`** — prefer immutability; use builders or factory methods instead
+- **Use builders in mappers** — prefer `.builder()...build()` over positional constructor calls for readability
+
+### Key Architecture Rules
+
+- **Domain layer has ZERO dependencies** on Spring, JPA, or infrastructure (Lombok is allowed as it has no runtime dependency)
+- Dependencies always point **inward** — infrastructure → application → domain
 - Each bounded context has its own exceptions, ports, and repository interfaces
+
+### Layered Responsibilities
+
+#### Domain Layer
+- Contains **only** pure business logic: models, value objects, domain exceptions
+- **Business validation belongs in the domain layer** — domain models must enforce their own invariants (e.g. non-blank username, valid email format, password length) in constructors or factory methods, throwing domain exceptions on violation. This ensures invariants hold regardless of which inbound adapter (REST, CLI, messaging, etc.) triggers the flow. Controllers may additionally validate request format, but domain rules must never rely solely on adapter-layer validation.
+- **No domain services** unless genuinely needed for cross-aggregate domain logic
+
+#### Application Layer
+- **Inbound ports** (`port/in/`): interfaces suffixed with `Port` (e.g. `RegisterUserPort`) — the contract controllers depend on
+- **Outbound ports** (`port/out/`): interfaces suffixed with `Port` (e.g. `UserRepositoryPort`, `PasswordHasherPort`) — contracts that infrastructure adapters implement
+- **Use cases** (`usecase/`): implement inbound port interfaces — contain orchestration logic (validation, calling domain, calling outbound ports)
+- **Commands** (`command/`): named input objects for use cases (e.g. `RegisterUserCommand`) — each command carries a `mapToDomain()` method responsible for mapping itself to the corresponding domain object
+- **Use cases return domain objects**, never DTOs — DTO mapping is the controller's responsibility
+- **Use cases must not know about JWT, HTTP, or any infrastructure concern**
+
+#### Infrastructure Layer
+- **Controllers** depend on inbound port interfaces (not on use case classes directly)
+- **Controllers** are responsible for: request validation (via DTOs), calling the port/in, JWT generation, mapping domain objects to response DTOs
+- **Controllers must have Swagger/OpenAPI annotations**: `@Tag` on the class, `@Operation` + `@ApiResponse` on each endpoint (include error responses with `ErrorResponse` schema)
+- **Prefer `@ResponseStatus` over `ResponseEntity`** — keeps controller methods clean by returning DTOs directly instead of wrapping them
+- **Outbound adapters** (JPA repositories) implement domain outbound port interfaces
+- **Bean configuration** wires use cases to their port/in interfaces via `@Bean` methods
+
+### Request Flow
+
+```
+Controller
+  → creates Command from Request DTO
+  → calls PortIn.execute(command)
+    → UseCase (implements PortIn)
+      → validates business rules via PortOut
+      → command.mapToDomain() → domain object
+      → persists via PortOut
+      → returns domain object
+  ← receives domain object
+  → generates JWT (if auth endpoint)
+  → maps domain object to Response DTO
+  → returns HTTP response
+```
+
+### Naming Conventions
+
+| Concept | Convention | Example |
+|---|---|---|
+| Inbound port | `{Action}Port` | `RegisterUserPort` |
+| Outbound port | `{Entity}RepositoryPort`, `{Action}Port` | `UserRepositoryPort`, `PasswordHasherPort` |
+| Use case | `{Action}UseCase` | `RegisterUserUseCase` |
+| Command | `{Action}Command` | `RegisterUserCommand` |
+| Request DTO | `{Action}Request` | `RegisterRequest` |
+| Response DTO | `{Entity}Response` | `UserResponse` |
 
 ## Bounded Contexts
 
@@ -78,18 +141,25 @@ Base URL: `/api/v1`. All endpoints except `/auth/register` and `/auth/login` req
 
 - Liquibase changelogs organized by bounded context: `db/changelog/identity/`, `db/changelog/group/`, etc.
 - Master changelog: `src/main/resources/db/changelog/db.changelog-master.yaml`
-- Naming convention: `YYYY-MM-DD-NNN-description.yaml`
+- **Each migration file is listed explicitly** in the master changelog (no `includeAll`) — this controls execution order and avoids date-prefixed filenames
+- Naming convention: `NNN-description.yaml` (e.g. `001-create-users-table.yaml`)
 
 ## Testing Strategy
 
 | Level | Scope | Tools |
 |---|---|---|
-| Unit | Domain services, ELO algorithm, value objects | JUnit 5, Mockito |
+| Unit | Use cases, ELO algorithm, value objects | JUnit 5, Mockito |
 | Integration | Repository adapters, DB queries | Testcontainers, Spring Boot Test |
 | API | REST controllers, request/response cycle | MockMvc/RestAssured, Testcontainers |
 | Acceptance | End-to-end feature validation | Cucumber (Gherkin) + Spring Boot Test + Testcontainers |
 
-- Domain layer tested in **pure isolation** (no Spring context)
+- Domain and application layers tested in **pure isolation** (no Spring context)
+- **Each class gets its own dedicated test class** — no global service tests bundling multiple concerns:
+  - Domain models → `src/test/java/com/elo/domain/{context}/model/{Model}Test.java`
+  - Use cases → `src/test/java/com/elo/application/{context}/usecase/{Action}UseCaseTest.java`
+  - Commands → `src/test/java/com/elo/application/{context}/command/{Action}CommandTest.java`
+  - Mappers → `src/test/java/com/elo/application/{context}/mapper/{Entity}MapperTest.java`
+- **Test package mirrors source package** — e.g. `com.elo.domain.identity.model.User` is tested in `com.elo.domain.identity.model.UserTest`
 - Acceptance test features: `src/test/resources/features/{identity,group,activity,match,ranking}/`
 - Each acceptance scenario manages its own test data through API calls in `Given` steps
 - ELO algorithm requires **dedicated exhaustive tests** (1v1, team, FFA, draws, cancellation revert)

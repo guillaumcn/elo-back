@@ -6,7 +6,22 @@
       "mcp__trello__get_board_labels",
       "mcp__trello__update_label",
       "mcp__trello__add_card_to_list",
-      "Bash(./mvnw compile:*)"
+      "Bash(./mvnw compile:*)",
+      "Bash(find /home/guillaume/elo/backend/src/test/java -type f -name *.java)",
+      "Bash(wc -l /home/guillaume/elo/backend/src/main/java/com/elo/**/*.java)",
+      "Bash(./mvnw test:*)",
+      "Bash(docker version:*)",
+      "Bash(./mvnw dependency:tree -Dincludes=com.github.docker-java)",
+      "Bash(DOCKER_API_VERSION=1.44 ./mvnw test)",
+      "Bash(python3 -m json.tool)",
+      "Bash(/home/guillaume/elo/backend/src/test/resources/testcontainers.properties:*)",
+      "Read(//home/guillaume/**)",
+      "Bash(find /home/guillaume/.m2/repository/com/github/docker-java/docker-java-api/3.5.1/ -name *.jar -exec unzip -p {} com/github/docker/api/model/RemoteApiVersion.class)",
+      "Bash(find /home/guillaume/.m2/repository/com/github/docker-java/docker-java-core -name *.jar)",
+      "Bash(unzip -p /home/guillaume/.m2/repository/com/github/docker-java/docker-java-transport-zerodep/3.5.1/docker-java-transport-zerodep-3.5.1.jar META-INF/MANIFEST.MF)",
+      "Bash(jar tf:*)",
+      "Bash(unzip -p /home/guillaume/.m2/repository/org/testcontainers/testcontainers/1.21.0/testcontainers-1.21.0.jar org/testcontainers/DockerClientFactory.class)",
+      "Bash(./mvnw dependency:resolve -pl . -Dartifact=org.testcontainers:testcontainers:1.21.1)"
     ]
   }
 }
