@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__trello__list_boards",
+      "mcp__trello__archive_card",
+      "mcp__trello__get_board_labels",
+      "mcp__trello__update_label",
+      "mcp__trello__add_card_to_list",
+      "Bash(./mvnw compile:*)"
+    ]
+  }
+}

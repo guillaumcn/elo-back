@@ -1,0 +1,18 @@
+name: Unit Tests
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-java
+
+      - name: Run unit tests
+        run: ./mvnw test -B -Dtest='!com.elo.acceptance.**'

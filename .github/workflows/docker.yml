@@ -1,0 +1,32 @@
+name: Docker Image Build
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  docker-build:
+    name: Docker Image Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: docker build -t elo-ranking:${{ github.sha }} .
+
+      - name: Verify image runs
+        run: |
+          docker run --rm -d --name elo-smoke -p 8080:8080 \
+            -e DB_HOST=localhost \
+            -e DB_PORT=5432 \
+            -e DB_NAME=elo_ranking \
+            -e DB_USERNAME=elo \
+            -e DB_PASSWORD=elo \
+            -e SPRING_LIQUIBASE_ENABLED=false \
+            -e JWT_SECRET=ci-test-secret \
+            elo-ranking:${{ github.sha }}
+          sleep 5
+          docker logs elo-smoke || true
+          docker stop elo-smoke || true

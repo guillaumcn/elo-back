@@ -1,0 +1,45 @@
+name: Liquibase Dry Run
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  liquibase-validate:
+    name: Liquibase Dry Run
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: elo_ranking
+          POSTGRES_USER: elo
+          POSTGRES_PASSWORD: elo
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U elo -d elo_ranking"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-java
+
+      - name: Validate changelog syntax
+        run: >-
+          ./mvnw liquibase:validate -B
+          -Dliquibase.url=jdbc:postgresql://localhost:5432/elo_ranking
+          -Dliquibase.username=elo
+          -Dliquibase.password=elo
+          -Dliquibase.changeLogFile=src/main/resources/db/changelog/db.changelog-master.yaml
+
+      - name: Run migrations (dry run verification)
+        run: >-
+          ./mvnw liquibase:updateSQL -B
+          -Dliquibase.url=jdbc:postgresql://localhost:5432/elo_ranking
+          -Dliquibase.username=elo
+          -Dliquibase.password=elo
+          -Dliquibase.changeLogFile=src/main/resources/db/changelog/db.changelog-master.yaml

@@ -1,0 +1,11 @@
+databaseChangeLog:
+  - includeAll:
+      path: db/changelog/identity/
+  - includeAll:
+      path: db/changelog/group/
+  - includeAll:
+      path: db/changelog/activity/
+  - includeAll:
+      path: db/changelog/match/
+  - includeAll:
+      path: db/changelog/ranking/
