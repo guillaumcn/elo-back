@@ -23,7 +23,22 @@
       "Bash(unzip -p /home/guillaume/.m2/repository/org/testcontainers/testcontainers/1.21.0/testcontainers-1.21.0.jar org/testcontainers/DockerClientFactory.class)",
       "Bash(./mvnw dependency:resolve -pl . -Dartifact=org.testcontainers:testcontainers:1.21.1)",
       "Bash(mkdir -p /home/guillaume/elo/backend/src/main/java/com/elo/infrastructure/adapter/in/web/identity/mapper)",
-      "Bash(mkdir -p /home/guillaume/elo/backend/src/test/java/com/elo/infrastructure/adapter/in/web/identity/mapper)"
+      "Bash(mkdir -p /home/guillaume/elo/backend/src/test/java/com/elo/infrastructure/adapter/in/web/identity/mapper)",
+      "Bash(echo \"DOCKER_HOST=$DOCKER_HOST\")",
+      "Bash(echo \"DOCKER_API_VERSION=$DOCKER_API_VERSION\")",
+      "Read(//var/run/**)",
+      "Bash(docker context:*)",
+      "Bash(curl -s --unix-socket /var/run/docker.sock http://localhost/version)",
+      "Bash(grep -v \"^\\\\[INFO\\\\] $\")",
+      "mcp__trello__get_active_board_info",
+      "mcp__trello__list_boards_in_workspace",
+      "mcp__trello__set_active_board",
+      "mcp__trello__get_lists",
+      "mcp__trello__get_cards_by_list_id",
+      "mcp__trello__get_card",
+      "Bash(find /home/guillaume/elo/backend/src/test/resources/features -type f -name *.feature)",
+      "Bash(./mvnw test-compile:*)",
+      "Bash(unzip:*)"
     ]
   }
 }

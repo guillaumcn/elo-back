@@ -1,8 +1,10 @@
 package com.elo.infrastructure.adapter.in.web.identity;
 
 import com.elo.application.identity.dto.AuthResponse;
+import com.elo.application.identity.dto.LoginRequest;
 import com.elo.application.identity.dto.RegisterRequest;
-import com.elo.infrastructure.adapter.in.web.identity.mapper.UserMapper;
+import com.elo.application.identity.port.in.LoginUserPort;
+import com.elo.infrastructure.adapter.in.web.identity.mapper.UserResponseMapper;
 import com.elo.application.identity.port.in.RegisterUserPort;
 import com.elo.domain.identity.model.User;
 import com.elo.infrastructure.configuration.ErrorResponse;
@@ -28,6 +30,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthController {
 
     private final RegisterUserPort registerUserPort;
+    private final LoginUserPort loginUserPort;
     private final JwtTokenProvider jwtTokenProvider;
 
     @Operation(summary = "Register a new user", description = "Creates a new user account and returns a JWT token")
@@ -39,9 +42,21 @@ public class AuthController {
     @PostMapping("/register")
     @ResponseStatus(HttpStatus.CREATED)
     public AuthResponse register(@Valid @RequestBody RegisterRequest request) {
-        var command = UserMapper.toCommand(request);
-        User user = registerUserPort.execute(command);
+        User user = registerUserPort.execute(request.toCommand());
         String token = jwtTokenProvider.generateToken(user.getId(), user.getUsername());
-        return new AuthResponse(token, UserMapper.toResponse(user));
+        return new AuthResponse(token, UserResponseMapper.toResponse(user));
+    }
+
+    @Operation(summary = "Login", description = "Authenticates a user and returns a JWT token")
+    @ApiResponse(responseCode = "200", description = "Login successful")
+    @ApiResponse(responseCode = "400", description = "Validation error",
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    @ApiResponse(responseCode = "401", description = "Invalid credentials",
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    @PostMapping("/login")
+    public AuthResponse login(@Valid @RequestBody LoginRequest request) {
+        User user = loginUserPort.execute(request.toCommand());
+        String token = jwtTokenProvider.generateToken(user.getId(), user.getUsername());
+        return new AuthResponse(token, UserResponseMapper.toResponse(user));
     }
 }

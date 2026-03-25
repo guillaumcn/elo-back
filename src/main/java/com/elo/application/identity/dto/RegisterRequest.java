@@ -1,5 +1,6 @@
 package com.elo.application.identity.dto;
 
+import com.elo.application.identity.command.RegisterUserCommand;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -17,4 +18,7 @@ public record RegisterRequest(
         @Size(min = 8, message = "Password must be at least 8 characters")
         String password
 ) {
+    public RegisterUserCommand toCommand() {
+        return new RegisterUserCommand(username, email, password);
+    }
 }

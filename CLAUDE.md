@@ -90,7 +90,8 @@ com.elo
 #### Infrastructure Layer
 - **Controllers** depend on inbound port interfaces (not on use case classes directly)
 - **Controllers** are responsible for: request validation (via DTOs), calling the port/in, JWT generation, mapping domain objects to response DTOs
-- **Controllers must use mappers to map Request DTOs to Commands and domain objects to Response DTOs** — never construct commands or responses inline; delegate to a `{Entity}Mapper` in `infrastructure/adapter/in/web/mapper/`
+- **Request DTOs expose a `toCommand()` instance method** — controllers call `request.toCommand()` to get the command; no separate mapper needed for request → command mapping
+- **`{Entity}ResponseMapper`** in `infrastructure/adapter/in/web/{context}/mapper/` maps domain objects to response DTOs — controllers call `{Entity}ResponseMapper.toResponse(domainObject)`
 - **Controllers must have Swagger/OpenAPI annotations**: `@Tag` on the class, `@Operation` + `@ApiResponse` on each endpoint (include error responses with `ErrorResponse` schema)
 - **Prefer `@ResponseStatus` over `ResponseEntity`** — keeps controller methods clean by returning DTOs directly instead of wrapping them
 - **Outbound adapters** (JPA repositories) implement domain outbound port interfaces
@@ -100,7 +101,7 @@ com.elo
 
 ```
 Controller
-  → creates Command from Request DTO
+  → request.toCommand() → Command
   → calls PortIn.execute(command)
     → UseCase (implements PortIn)
       → validates business rules via PortOut
@@ -123,6 +124,7 @@ Controller
 | Command | `{Action}Command` | `RegisterUserCommand` |
 | Request DTO | `{Action}Request` | `RegisterRequest` |
 | Response DTO | `{Entity}Response` | `UserResponse` |
+| Response mapper | `{Entity}ResponseMapper` | `UserResponseMapper` |
 
 ## Bounded Contexts
 
@@ -164,6 +166,27 @@ Base URL: `/api/v1`. All endpoints except `/auth/register` and `/auth/login` req
 - Acceptance test features: `src/test/resources/features/{identity,group,activity,match,ranking}/`
 - Each acceptance scenario manages its own test data through API calls in `Given` steps
 - ELO algorithm requires **dedicated exhaustive tests** (1v1, team, FFA, draws, cancellation revert)
+
+### Acceptance Test Step Pattern
+
+All acceptance scenarios follow this structure — build the request field by field, then submit:
+
+```gherkin
+Scenario: <description>
+  Given <precondition — existing data or first request field if no precondition>
+  And a <action> request with <field> "<value>"   # first request field (if precondition exists)
+  And the <action> <field> is "<value>"           # each subsequent request field
+  When I submit the <action> request
+  Then I receive a <NNN> <Status> response
+  And <additional assertions>
+```
+
+- **`Given`**: sets up preconditions (existing DB state) via API calls, OR starts the request building when there is no precondition
+- **`And a X request with <field> "<value>"`**: declares the first field of the pending request
+- **`And the X <field> is "<value>"`**: each additional field of the pending request
+- **`When I submit the X request`**: executes the HTTP call using the pending fields
+- Step classes hold `pending*` fields populated by `And` steps and consumed by `When`
+- Shared steps (e.g. `the response contains a valid JWT token`) are defined **once** across all step classes to avoid Cucumber ambiguity
 
 ## Error Handling
 
