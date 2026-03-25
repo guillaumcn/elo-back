@@ -9,6 +9,7 @@ public record UserResponse(
         String email,
         String avatarUrl,
         String bio,
-        Instant createdAt
+        Instant createdAt,
+        Instant updatedAt
 ) {
 }

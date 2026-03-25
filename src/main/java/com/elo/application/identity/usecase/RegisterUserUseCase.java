@@ -17,15 +17,23 @@ public class RegisterUserUseCase implements RegisterUserPort {
 
     @Override
     public User execute(RegisterUserCommand command) {
-        if (userRepositoryPort.existsByUsername(command.username())) {
-            throw new UsernameAlreadyTakenException(command.username());
-        }
-        if (userRepositoryPort.existsByEmail(command.email())) {
-            throw new EmailAlreadyTakenException(command.email());
-        }
+        ensureUsernameIsAvailable(command.username());
+        ensureEmailIsAvailable(command.email());
 
         String hashedPassword = passwordHasher.hash(command.rawPassword());
         User user = User.create(command.username(), command.email(), hashedPassword);
         return userRepositoryPort.save(user);
+    }
+
+    private void ensureUsernameIsAvailable(String username) {
+        if (userRepositoryPort.existsByUsername(username)) {
+            throw new UsernameAlreadyTakenException(username);
+        }
+    }
+
+    private void ensureEmailIsAvailable(String email) {
+        if (userRepositoryPort.existsByEmail(email)) {
+            throw new EmailAlreadyTakenException(email);
+        }
     }
 }

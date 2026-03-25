@@ -16,17 +16,21 @@ public class LoginUserUseCase implements LoginUserPort {
 
     @Override
     public User execute(LoginCommand command) {
-        User user = userRepositoryPort.findByEmail(command.email())
-                .orElseThrow(InvalidCredentialsException::new);
-
-        if (user.isDeleted()) {
-            throw new InvalidCredentialsException();
-        }
-
-        if (!passwordHasher.matches(command.rawPassword(), user.getPasswordHash())) {
-            throw new InvalidCredentialsException();
-        }
-
+        User user = findActiveUserByEmail(command.email());
+        ensurePasswordMatches(command.rawPassword(), user.getPasswordHash());
         return user;
+    }
+
+    private User findActiveUserByEmail(String email) {
+        User user = userRepositoryPort.findByEmail(email)
+                .orElseThrow(InvalidCredentialsException::new);
+        if (user.isDeleted()) throw new InvalidCredentialsException();
+        return user;
+    }
+
+    private void ensurePasswordMatches(String rawPassword, String passwordHash) {
+        if (!passwordHasher.matches(rawPassword, passwordHash)) {
+            throw new InvalidCredentialsException();
+        }
     }
 }

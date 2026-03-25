@@ -41,6 +41,26 @@ public class User {
     private static final int PASSWORD_HASH_MIN_LENGTH = 1;
     private static final Pattern EMAIL_PATTERN = Pattern.compile("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$");
 
+    public void updateProfile(String username, String avatarUrl, String bio) {
+        if (username != null) {
+            validateUsername(username);
+            this.username = username;
+        }
+        if (avatarUrl != null) this.avatarUrl = avatarUrl;
+        if (bio != null) this.bio = bio;
+        this.updatedAt = Instant.now();
+    }
+
+    public void deleteAccount() {
+        String anonymizedUsername = "deleted_" + id;
+        this.username = anonymizedUsername;
+        this.email = anonymizedUsername + "@deleted.invalid";
+        this.avatarUrl = null;
+        this.bio = null;
+        this.deleted = true;
+        this.updatedAt = Instant.now();
+    }
+
     public static User create(String username, String email, String passwordHash) {
         validateUsername(username);
         validateEmail(email);

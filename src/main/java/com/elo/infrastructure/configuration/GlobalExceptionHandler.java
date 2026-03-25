@@ -3,6 +3,7 @@ package com.elo.infrastructure.configuration;
 import com.elo.domain.identity.exception.EmailAlreadyTakenException;
 import com.elo.domain.identity.exception.InvalidCredentialsException;
 import com.elo.domain.identity.exception.InvalidUserException;
+import com.elo.domain.identity.exception.UserNotFoundException;
 import com.elo.domain.identity.exception.UsernameAlreadyTakenException;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -46,5 +47,11 @@ public class GlobalExceptionHandler {
     @ResponseStatus(HttpStatus.UNAUTHORIZED)
     public ErrorResponse handleInvalidCredentials(InvalidCredentialsException ex) {
         return ErrorResponse.of(401, "UNAUTHORIZED", ex.getMessage());
+    }
+
+    @ExceptionHandler(UserNotFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public ErrorResponse handleUserNotFound(UserNotFoundException ex) {
+        return ErrorResponse.of(404, "NOT_FOUND", ex.getMessage());
     }
 }

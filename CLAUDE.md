@@ -63,7 +63,7 @@ com.elo
 - **`@NoArgsConstructor(access = PROTECTED)`** on JPA entities (required by JPA)
 - **`@NoArgsConstructor(access = PRIVATE)`** on utility/mapper classes — replaces private constructor
 - **Do NOT use Lombok on records** — Java records already provide accessors, equals/hashCode, toString
-- **Do NOT use `@Setter`** — prefer immutability; use builders or factory methods instead
+- **Do NOT use `@Setter`** — entities mutate via explicit methods (e.g. `updateProfile()`, `deleteAccount()`), not setters; value objects are immutable records
 - **Use builders in mappers** — prefer `.builder()...build()` over positional constructor calls for readability
 
 ### Key Architecture Rules
@@ -77,12 +77,14 @@ com.elo
 #### Domain Layer
 - Contains **only** pure business logic: models, value objects, domain exceptions
 - **Business validation belongs in the domain layer** — domain models must enforce their own invariants (e.g. non-blank username, valid email format, password length) in constructors or factory methods, throwing domain exceptions on violation. This ensures invariants hold regardless of which inbound adapter (REST, CLI, messaging, etc.) triggers the flow. Controllers may additionally validate request format, but domain rules must never rely solely on adapter-layer validation.
+- **Entities vs value objects**: domain entities have identity and are mutable — mutation methods (e.g. `updateProfile()`, `deleteAccount()`) modify `this` directly and return `void`; value objects have no identity and are immutable — model them as Java records (e.g. `EloRating`, `MatchResult`)
 - **No domain services** unless genuinely needed for cross-aggregate domain logic
 
 #### Application Layer
 - **Inbound ports** (`port/in/`): interfaces suffixed with `Port` (e.g. `RegisterUserPort`) — the contract controllers depend on
 - **Outbound ports** (`port/out/`): interfaces suffixed with `Port` (e.g. `UserRepositoryPort`, `PasswordHasherPort`) — contracts that infrastructure adapters implement
 - **Use cases** (`usecase/`): implement inbound port interfaces — contain orchestration logic (validation, calling domain, calling outbound ports)
+- **Use cases must be maximally human-readable** — the `execute()` method should read like a plain-English description of the flow; extract guard clauses, lookups, and non-trivial conditions into descriptively named private methods (e.g. `ensureUsernameIsAvailable()`, `findActiveUserByEmail()`, `isUsernameChanging()`)
 - **Commands** (`command/`): plain data carriers for use case inputs (e.g. `RegisterUserCommand`) — no mapping logic; use cases call domain factory methods directly (e.g. `User.create(...)`)
 - **Use cases return domain objects**, never DTOs — DTO mapping is the controller's responsibility
 - **Use cases must not know about JWT, HTTP, or any infrastructure concern**
@@ -186,7 +188,11 @@ Scenario: <description>
 - **`And the X <field> is "<value>"`**: each additional field of the pending request
 - **`When I submit the X request`**: executes the HTTP call using the pending fields
 - Step classes hold `pending*` fields populated by `And` steps and consumed by `When`
-- Shared steps (e.g. `the response contains a valid JWT token`) are defined **once** across all step classes to avoid Cucumber ambiguity
+- **Before writing any step**, search all existing step files for the same (or conflicting) step text — duplicates and parameterized vs. literal conflicts both cause `AmbiguousStepDefinitionsException` at runtime
+- Generic status assertions (`I receive a 2xx/4xx response`) and shared setup steps (`a user exists with username`) live in `CommonSteps.java` — never redeclare them in feature step classes
+- All step classes use `ScenarioContext` (a `@ScenarioScope` Spring bean) to share `response` and `authToken` across step classes within a scenario — step classes must never hold `response` as an instance field
+- **Prefer controller-based steps for test context setup** — use existing or new Cucumber steps that call REST controllers (e.g. `Given a registered user with email "..." and password "..."` calls `/auth/register`); only fall back to direct database manipulation (e.g. via repositories or SQL) when no controller exists yet for that operation. Each time a new feature/controller is implemented, check whether existing database-level steps can be replaced with the new controller-based equivalent and update them.
+- **Step text must be human-readable and business-focused** — never expose HTTP methods, URLs, or technical details in `.feature` files; only the step implementation (Java) knows which route to call (e.g. use `When I access a protected endpoint without a token`, not `When I call GET /api/v1/users/me without an Authorization header`)
 
 ## Error Handling
 

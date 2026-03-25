@@ -1,13 +1,11 @@
 package com.elo.acceptance.identity;
 
+import com.elo.acceptance.ScenarioContext;
 import com.elo.application.identity.dto.LoginRequest;
 import com.elo.application.identity.dto.RegisterRequest;
-import com.elo.infrastructure.adapter.out.persistence.identity.UserJpaEntity;
-import com.elo.infrastructure.adapter.out.persistence.identity.UserJpaRepository;
 import com.elo.infrastructure.configuration.JwtProperties;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
-import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
@@ -18,16 +16,12 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
-import java.time.Instant;
 import java.util.Date;
 import java.util.Map;
 import java.util.UUID;
-
-import static org.assertj.core.api.Assertions.assertThat;
 
 public class LoginSteps {
 
@@ -38,12 +32,10 @@ public class LoginSteps {
     private TestRestTemplate restTemplate;
 
     @Autowired
-    private UserJpaRepository userJpaRepository;
+    private ScenarioContext scenarioContext;
 
     @Autowired
     private JwtProperties jwtProperties;
-
-    private ResponseEntity<Map> response;
 
     private String pendingEmail;
     private String pendingPassword;
@@ -62,19 +54,11 @@ public class LoginSteps {
     public void aUserWithEmailHasDeletedTheirAccount(String email) {
         String username = "deleted_" + System.nanoTime();
         register(username, email, "Str0ngP@ss!");
-        userJpaRepository.findByEmail(email).ifPresent(existing ->
-                userJpaRepository.save(UserJpaEntity.builder()
-                        .id(existing.getId())
-                        .username(existing.getUsername())
-                        .email(existing.getEmail())
-                        .passwordHash(existing.getPasswordHash())
-                        .avatarUrl(existing.getAvatarUrl())
-                        .bio(existing.getBio())
-                        .deleted(true)
-                        .createdAt(existing.getCreatedAt())
-                        .updatedAt(Instant.now())
-                        .build())
-        );
+        String token = login(email, "Str0ngP@ss!");
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("Authorization", "Bearer " + token);
+        restTemplate.exchange(baseUrl() + "/users/me", HttpMethod.DELETE,
+                new HttpEntity<>(headers), Map.class);
     }
 
     @Given("a login request with email {string}")
@@ -90,47 +74,42 @@ public class LoginSteps {
 
     @When("I submit the login request")
     public void iSubmitTheLoginRequest() {
-        response = login(pendingEmail, pendingPassword);
+        scenarioContext.setResponse(loginForResponse(pendingEmail, pendingPassword));
     }
 
     @When("I access a protected endpoint without a token")
     public void iAccessProtectedEndpointWithoutToken() {
-        response = restTemplate.getForEntity(baseUrl() + "/users/me", Map.class);
+        scenarioContext.setResponse(
+                restTemplate.getForEntity(baseUrl() + "/users/me", Map.class));
     }
 
     @When("I access a protected endpoint with an expired token")
     public void iAccessProtectedEndpointWithExpiredToken() {
-        String expiredToken = buildExpiredToken();
         HttpHeaders headers = new HttpHeaders();
-        headers.set("Authorization", "Bearer " + expiredToken);
-        HttpEntity<Void> entity = new HttpEntity<>(headers);
-        response = restTemplate.exchange(baseUrl() + "/users/me", HttpMethod.GET, entity, Map.class);
+        headers.set("Authorization", "Bearer " + buildExpiredToken());
+        scenarioContext.setResponse(restTemplate.exchange(
+                baseUrl() + "/users/me", HttpMethod.GET,
+                new HttpEntity<>(headers), Map.class));
     }
 
-    @Then("I receive a 200 OK response")
-    public void iReceive200OkResponse() {
-        assertThat(response.getStatusCode().value()).isEqualTo(200);
+    private String login(String email, String password) {
+        return (String) loginForResponse(email, password).getBody().get("token");
     }
 
-    @Then("I receive a 401 Unauthorized response")
-    public void iReceive401UnauthorizedResponse() {
-        assertThat(response.getStatusCode().value()).isEqualTo(401);
-    }
-
-    private ResponseEntity<Map> login(String email, String password) {
+    private org.springframework.http.ResponseEntity<Map> loginForResponse(String email, String password) {
         LoginRequest request = new LoginRequest(email, password);
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
-        HttpEntity<LoginRequest> entity = new HttpEntity<>(request, headers);
-        return restTemplate.postForEntity(baseUrl() + "/auth/login", entity, Map.class);
+        return restTemplate.postForEntity(baseUrl() + "/auth/login",
+                new HttpEntity<>(request, headers), Map.class);
     }
 
     private void register(String username, String email, String password) {
         RegisterRequest request = new RegisterRequest(username, email, password);
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
-        HttpEntity<RegisterRequest> entity = new HttpEntity<>(request, headers);
-        restTemplate.postForEntity(baseUrl() + "/auth/register", entity, Map.class);
+        restTemplate.postForEntity(baseUrl() + "/auth/register",
+                new HttpEntity<>(request, headers), Map.class);
     }
 
     private String buildExpiredToken() {

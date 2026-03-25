@@ -35,6 +35,7 @@ class UserResponseMapperTest {
         assertThat(response.avatarUrl()).isEqualTo("https://example.com/avatar.png");
         assertThat(response.bio()).isEqualTo("Hello world");
         assertThat(response.createdAt()).isEqualTo(createdAt);
+        assertThat(response.updatedAt()).isEqualTo(createdAt);
     }
 
     @Test
