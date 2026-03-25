@@ -27,6 +27,10 @@ public class RegistrationSteps {
 
     private ResponseEntity<Map> response;
 
+    private String pendingUsername;
+    private String pendingEmail;
+    private String pendingPassword;
+
     private String baseUrl() {
         return "http://localhost:" + port + "/api/v1";
     }
@@ -46,9 +50,26 @@ public class RegistrationSteps {
         register("existinguser_" + System.nanoTime(), email, "Str0ngP@ss!");
     }
 
-    @When("I register with username {string}, email {string}, and password {string}")
-    public void iRegister(String username, String email, String password) {
-        response = register(username, email, password);
+    @Given("a registration request with username {string}")
+    public void aRegistrationRequestWithUsername(String username) {
+        pendingUsername = username;
+        pendingEmail = null;
+        pendingPassword = null;
+    }
+
+    @And("the registration email is {string}")
+    public void theRegistrationEmailIs(String email) {
+        pendingEmail = email;
+    }
+
+    @And("the registration password is {string}")
+    public void theRegistrationPasswordIs(String password) {
+        pendingPassword = password;
+    }
+
+    @When("I submit the registration request")
+    public void iSubmitTheRegistrationRequest() {
+        response = register(pendingUsername, pendingEmail, pendingPassword);
     }
 
     @Then("I receive a {int} Created response")

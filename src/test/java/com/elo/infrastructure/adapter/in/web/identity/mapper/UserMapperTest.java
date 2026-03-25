@@ -1,4 +1,4 @@
-package com.elo.application.identity.mapper;
+package com.elo.infrastructure.adapter.in.web.identity.mapper;
 
 import com.elo.application.identity.dto.UserResponse;
 import com.elo.domain.identity.model.User;

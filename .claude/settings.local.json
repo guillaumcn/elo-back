@@ -21,7 +21,9 @@
       "Bash(unzip -p /home/guillaume/.m2/repository/com/github/docker-java/docker-java-transport-zerodep/3.5.1/docker-java-transport-zerodep-3.5.1.jar META-INF/MANIFEST.MF)",
       "Bash(jar tf:*)",
       "Bash(unzip -p /home/guillaume/.m2/repository/org/testcontainers/testcontainers/1.21.0/testcontainers-1.21.0.jar org/testcontainers/DockerClientFactory.class)",
-      "Bash(./mvnw dependency:resolve -pl . -Dartifact=org.testcontainers:testcontainers:1.21.1)"
+      "Bash(./mvnw dependency:resolve -pl . -Dartifact=org.testcontainers:testcontainers:1.21.1)",
+      "Bash(mkdir -p /home/guillaume/elo/backend/src/main/java/com/elo/infrastructure/adapter/in/web/identity/mapper)",
+      "Bash(mkdir -p /home/guillaume/elo/backend/src/test/java/com/elo/infrastructure/adapter/in/web/identity/mapper)"
     ]
   }
 }

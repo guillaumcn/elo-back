@@ -83,13 +83,14 @@ com.elo
 - **Inbound ports** (`port/in/`): interfaces suffixed with `Port` (e.g. `RegisterUserPort`) — the contract controllers depend on
 - **Outbound ports** (`port/out/`): interfaces suffixed with `Port` (e.g. `UserRepositoryPort`, `PasswordHasherPort`) — contracts that infrastructure adapters implement
 - **Use cases** (`usecase/`): implement inbound port interfaces — contain orchestration logic (validation, calling domain, calling outbound ports)
-- **Commands** (`command/`): named input objects for use cases (e.g. `RegisterUserCommand`) — each command carries a `mapToDomain()` method responsible for mapping itself to the corresponding domain object
+- **Commands** (`command/`): plain data carriers for use case inputs (e.g. `RegisterUserCommand`) — no mapping logic; use cases call domain factory methods directly (e.g. `User.create(...)`)
 - **Use cases return domain objects**, never DTOs — DTO mapping is the controller's responsibility
 - **Use cases must not know about JWT, HTTP, or any infrastructure concern**
 
 #### Infrastructure Layer
 - **Controllers** depend on inbound port interfaces (not on use case classes directly)
 - **Controllers** are responsible for: request validation (via DTOs), calling the port/in, JWT generation, mapping domain objects to response DTOs
+- **Controllers must use mappers to map Request DTOs to Commands and domain objects to Response DTOs** — never construct commands or responses inline; delegate to a `{Entity}Mapper` in `infrastructure/adapter/in/web/mapper/`
 - **Controllers must have Swagger/OpenAPI annotations**: `@Tag` on the class, `@Operation` + `@ApiResponse` on each endpoint (include error responses with `ErrorResponse` schema)
 - **Prefer `@ResponseStatus` over `ResponseEntity`** — keeps controller methods clean by returning DTOs directly instead of wrapping them
 - **Outbound adapters** (JPA repositories) implement domain outbound port interfaces
@@ -103,7 +104,7 @@ Controller
   → calls PortIn.execute(command)
     → UseCase (implements PortIn)
       → validates business rules via PortOut
-      → command.mapToDomain() → domain object
+      → Domain.create(...) → domain object
       → persists via PortOut
       → returns domain object
   ← receives domain object

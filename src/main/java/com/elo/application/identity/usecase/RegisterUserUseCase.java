@@ -25,7 +25,7 @@ public class RegisterUserUseCase implements RegisterUserPort {
         }
 
         String hashedPassword = passwordHasher.hash(command.rawPassword());
-        User user = command.mapToDomain(hashedPassword);
+        User user = User.create(command.username(), command.email(), hashedPassword);
         return userRepositoryPort.save(user);
     }
 }

@@ -1,9 +1,8 @@
-package com.elo.infrastructure.adapter.in.web;
+package com.elo.infrastructure.adapter.in.web.identity;
 
-import com.elo.application.identity.command.RegisterUserCommand;
 import com.elo.application.identity.dto.AuthResponse;
 import com.elo.application.identity.dto.RegisterRequest;
-import com.elo.application.identity.mapper.UserMapper;
+import com.elo.infrastructure.adapter.in.web.identity.mapper.UserMapper;
 import com.elo.application.identity.port.in.RegisterUserPort;
 import com.elo.domain.identity.model.User;
 import com.elo.infrastructure.configuration.ErrorResponse;
@@ -40,7 +39,7 @@ public class AuthController {
     @PostMapping("/register")
     @ResponseStatus(HttpStatus.CREATED)
     public AuthResponse register(@Valid @RequestBody RegisterRequest request) {
-        var command = new RegisterUserCommand(request.username(), request.email(), request.password());
+        var command = UserMapper.toCommand(request);
         User user = registerUserPort.execute(command);
         String token = jwtTokenProvider.generateToken(user.getId(), user.getUsername());
         return new AuthResponse(token, UserMapper.toResponse(user));
