@@ -169,7 +169,8 @@
                 <groupId>org.liquibase</groupId>
                 <artifactId>liquibase-maven-plugin</artifactId>
                 <configuration>
-                    <changeLogFile>src/main/resources/db/changelog/db.changelog-master.yaml</changeLogFile>
+                    <changeLogFile>db/changelog/db.changelog-master.yaml</changeLogFile>
+                    <searchPath>src/main/resources</searchPath>
                 </configuration>
             </plugin>
         </plugins>
