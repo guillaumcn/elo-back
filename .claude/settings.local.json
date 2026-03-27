@@ -38,7 +38,8 @@
       "mcp__trello__get_card",
       "Bash(find /home/guillaume/elo/backend/src/test/resources/features -type f -name *.feature)",
       "Bash(./mvnw test-compile:*)",
-      "Bash(unzip:*)"
+      "Bash(unzip:*)",
+      "Bash(xargs cat:*)"
     ]
   }
 }

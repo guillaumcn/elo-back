@@ -22,7 +22,8 @@ Feature: User Profile Management
     Then I receive a 409 Conflict response
 
   Scenario: View another user's public profile
-    Given I am authenticated as "alice"
+    Given a user exists with username "bob"
+    And I am authenticated as "alice"
     When I request the public profile of "bob"
     Then I receive a 200 OK response
     And the public profile username is "bob"

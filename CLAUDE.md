@@ -167,7 +167,9 @@ Base URL: `/api/v1`. All endpoints except `/auth/register` and `/auth/login` req
 - **Test package mirrors source package** — e.g. `com.elo.domain.identity.model.User` is tested in `com.elo.domain.identity.model.UserTest`
 - Acceptance test features: `src/test/resources/features/{identity,group,activity,match,ranking}/`
 - Each acceptance scenario manages its own test data through API calls in `Given` steps
+- **After each feature implementation, run the full test suite to validate non-regression**: `./mvnw test -B` (unit tests) and `./mvnw test -B -Dtest='com.elo.acceptance.CucumberTest'` (Cucumber acceptance tests)
 - ELO algorithm requires **dedicated exhaustive tests** (1v1, team, FFA, draws, cancellation revert)
+- **`CucumberHooks.java` must delete all tables between scenarios** — each time a new JPA repository is added (new bounded context or entity), add `repository.deleteAll()` to the `@Before` hook in `CucumberHooks.java` to keep scenarios isolated; failing to do so causes cross-scenario data contamination
 
 ### Acceptance Test Step Pattern
 

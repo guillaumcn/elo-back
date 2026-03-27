@@ -86,7 +86,6 @@ public class ProfileSteps {
 
     @When("I request the public profile of {string}")
     public void iRequestThePublicProfileOf(String username) {
-        register(username, username + "@example.com", "Str0ngP@ss!");
         scenarioContext.setResponse(restTemplate.exchange(
                 baseUrl() + "/users/" + username, HttpMethod.GET,
                 authorizedEntity(null), Map.class));
