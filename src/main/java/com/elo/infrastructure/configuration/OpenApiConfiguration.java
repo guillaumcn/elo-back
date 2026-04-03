@@ -18,9 +18,9 @@ public class OpenApiConfiguration {
                         .title("ELO Ranking API")
                         .description("API for tracking ELO-based skill ratings across competitive activities among friends")
                         .version("1.0.0"))
-                .addSecurityItem(new SecurityRequirement().addList("Bearer Authentication"))
+                .addSecurityItem(new SecurityRequirement().addList("bearerAuth"))
                 .components(new Components()
-                        .addSecuritySchemes("Bearer Authentication",
+                        .addSecuritySchemes("bearerAuth",
                                 new SecurityScheme()
                                         .type(SecurityScheme.Type.HTTP)
                                         .scheme("bearer")

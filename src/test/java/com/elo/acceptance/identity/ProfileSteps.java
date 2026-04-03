@@ -57,6 +57,13 @@ public class ProfileSteps {
         pendingBio = null;
     }
 
+    @And("a profile update request with bio {string}")
+    public void aProfileUpdateRequestWithBio(String bio) {
+        pendingUsername = null;
+        pendingAvatarUrl = null;
+        pendingBio = bio;
+    }
+
     @And("the profile update bio is {string}")
     public void theProfileUpdateBioIs(String bio) {
         pendingBio = bio;
@@ -99,6 +106,16 @@ public class ProfileSteps {
     @And("the public profile username is {string}")
     public void thePublicProfileUsernameIs(String expectedUsername) {
         assertThat(scenarioContext.getResponse().getBody().get("username")).isEqualTo(expectedUsername);
+    }
+
+    @And("the profile bio is {string}")
+    public void theProfileBioIs(String expectedBio) {
+        assertThat(scenarioContext.getResponse().getBody().get("bio")).isEqualTo(expectedBio);
+    }
+
+    @And("the public profile does not contain an email")
+    public void thePublicProfileDoesNotContainAnEmail() {
+        assertThat(scenarioContext.getResponse().getBody()).doesNotContainKey("email");
     }
 
     @And("I can no longer authenticate as {string}")

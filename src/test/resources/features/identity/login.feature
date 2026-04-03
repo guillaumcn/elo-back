@@ -35,3 +35,21 @@ Feature: User Authentication (Login)
   Scenario: Access protected endpoint with expired token
     When I access a protected endpoint with an expired token
     Then I receive a 401 Unauthorized response
+
+  Scenario: Login with invalid email format
+    Given a login request with email "not-an-email"
+    And the login password is "Str0ngP@ss!"
+    When I submit the login request
+    Then I receive a 400 Bad Request response
+
+  Scenario: Login with blank email
+    Given a login request with email ""
+    And the login password is "Str0ngP@ss!"
+    When I submit the login request
+    Then I receive a 400 Bad Request response
+
+  Scenario: Login with blank password
+    Given a login request with email "alice@example.com"
+    And the login password is ""
+    When I submit the login request
+    Then I receive a 400 Bad Request response

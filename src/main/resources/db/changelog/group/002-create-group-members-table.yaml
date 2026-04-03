@@ -1,0 +1,42 @@
+databaseChangeLog:
+  - changeSet:
+      id: group-002
+      author: elo-team
+      changes:
+        - createTable:
+            tableName: group_members
+            columns:
+              - column:
+                  name: id
+                  type: uuid
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: group_id
+                  type: uuid
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_group_members_group
+                    references: groups(id)
+              - column:
+                  name: user_id
+                  type: uuid
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_group_members_user
+                    references: users(id)
+              - column:
+                  name: role
+                  type: varchar(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: joined_at
+                  type: timestamp with time zone
+                  constraints:
+                    nullable: false
+        - addUniqueConstraint:
+            tableName: group_members
+            columnNames: group_id, user_id
+            constraintName: uq_group_members_group_user

@@ -2,3 +2,8 @@ databaseChangeLog:
   # Identity
   - include:
       file: db/changelog/identity/001-create-users-table.yaml
+  # Group
+  - include:
+      file: db/changelog/group/001-create-groups-table.yaml
+  - include:
+      file: db/changelog/group/002-create-group-members-table.yaml

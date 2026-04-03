@@ -46,7 +46,7 @@ public class CommonSteps {
 
     @Then("I receive a 200 OK response")
     public void iReceive200OkResponse() {
-        assertThat(scenarioContext.getResponse().getStatusCode().value()).isEqualTo(200);
+        assertThat(scenarioContext.getLastStatusCode()).isEqualTo(200);
     }
 
     @Then("I receive a 201 Created response")
@@ -72,6 +72,11 @@ public class CommonSteps {
     @Then("I receive a 404 Not Found response")
     public void iReceive404NotFoundResponse() {
         assertThat(scenarioContext.getResponse().getStatusCode().value()).isEqualTo(404);
+    }
+
+    @Then("I receive a 403 Forbidden response")
+    public void iReceive403ForbiddenResponse() {
+        assertThat(scenarioContext.getResponse().getStatusCode().value()).isEqualTo(403);
     }
 
     @Then("I receive a 409 Conflict response")

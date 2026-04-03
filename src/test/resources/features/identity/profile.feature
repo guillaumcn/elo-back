@@ -43,3 +43,25 @@ Feature: User Profile Management
     Given I am authenticated as "alice"
     When I delete my account
     Then the account data is anonymized
+
+  Scenario: Update bio only without changing username
+    Given I am authenticated as "alice"
+    And a profile update request with bio "I love table tennis"
+    When I submit the profile update
+    Then I receive a 200 OK response
+    And the profile bio is "I love table tennis"
+    And the profile username is "alice"
+
+  Scenario: Update username that is too short
+    Given I am authenticated as "alice"
+    And a profile update request with username "ab"
+    When I submit the profile update
+    Then I receive a 400 Bad Request response
+
+  Scenario: Public profile does not expose email
+    Given a user exists with username "bob"
+    And I am authenticated as "alice"
+    When I request the public profile of "bob"
+    Then I receive a 200 OK response
+    And the public profile username is "bob"
+    And the public profile does not contain an email

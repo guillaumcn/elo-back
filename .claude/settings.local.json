@@ -39,7 +39,17 @@
       "Bash(find /home/guillaume/elo/backend/src/test/resources/features -type f -name *.feature)",
       "Bash(./mvnw test-compile:*)",
       "Bash(unzip:*)",
-      "Bash(xargs cat:*)"
+      "Bash(xargs cat:*)",
+      "mcp__trello__get_my_cards",
+      "Bash(find /home/guillaume/elo/backend/src/main/java/com/elo/domain/group -type f -name *.java)",
+      "Bash(find /home/guillaume/elo/backend/src/main/java/com/elo/application/group -type f -name *.java)",
+      "mcp__trello__move_card",
+      "Bash(find:*)",
+      "Bash(python3:*)",
+      "Bash(xargs ls:*)",
+      "mcp__trello__get_acceptance_criteria",
+      "mcp__trello__get_checklist_by_name",
+      "mcp__trello__get_card_comments"
     ]
   }
 }

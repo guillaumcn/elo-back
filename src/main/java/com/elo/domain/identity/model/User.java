@@ -21,10 +21,18 @@ public class User {
     private Instant createdAt;
     private Instant updatedAt;
 
+    private static final int USERNAME_MIN_LENGTH = 3;
+    private static final int USERNAME_MAX_LENGTH = 50;
+    private static final int PASSWORD_HASH_MIN_LENGTH = 1;
+    private static final Pattern EMAIL_PATTERN = Pattern.compile("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$");
+
     @Builder
     public User(UUID id, String username, String email, String passwordHash,
                 String avatarUrl, String bio, boolean deleted,
                 Instant createdAt, Instant updatedAt) {
+        validateUsername(username);
+        validateEmail(email);
+        validatePasswordHash(passwordHash);
         this.id = id;
         this.username = username;
         this.email = email;
@@ -35,11 +43,6 @@ public class User {
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
     }
-
-    private static final int USERNAME_MIN_LENGTH = 3;
-    private static final int USERNAME_MAX_LENGTH = 50;
-    private static final int PASSWORD_HASH_MIN_LENGTH = 1;
-    private static final Pattern EMAIL_PATTERN = Pattern.compile("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$");
 
     public void updateProfile(String username, String avatarUrl, String bio) {
         if (username != null) {
@@ -62,10 +65,6 @@ public class User {
     }
 
     public static User create(String username, String email, String passwordHash) {
-        validateUsername(username);
-        validateEmail(email);
-        validatePasswordHash(passwordHash);
-
         Instant now = Instant.now();
         return User.builder()
                 .id(UUID.randomUUID())

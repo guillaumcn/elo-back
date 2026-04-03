@@ -1,5 +1,8 @@
 package com.elo.infrastructure.configuration;
 
+import com.elo.domain.group.exception.GroupAccessDeniedException;
+import com.elo.domain.group.exception.GroupNotFoundException;
+import com.elo.domain.group.exception.InvalidGroupException;
 import com.elo.domain.identity.exception.EmailAlreadyTakenException;
 import com.elo.domain.identity.exception.InvalidCredentialsException;
 import com.elo.domain.identity.exception.InvalidUserException;
@@ -53,5 +56,29 @@ public class GlobalExceptionHandler {
     @ResponseStatus(HttpStatus.NOT_FOUND)
     public ErrorResponse handleUserNotFound(UserNotFoundException ex) {
         return ErrorResponse.of(404, "NOT_FOUND", ex.getMessage());
+    }
+
+    @ExceptionHandler(InvalidGroupException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ErrorResponse handleInvalidGroup(InvalidGroupException ex) {
+        return ErrorResponse.of(400, "BAD_REQUEST", ex.getMessage());
+    }
+
+    @ExceptionHandler(GroupNotFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public ErrorResponse handleGroupNotFound(GroupNotFoundException ex) {
+        return ErrorResponse.of(404, "NOT_FOUND", ex.getMessage());
+    }
+
+    @ExceptionHandler(GroupAccessDeniedException.class)
+    @ResponseStatus(HttpStatus.FORBIDDEN)
+    public ErrorResponse handleGroupAccessDenied(GroupAccessDeniedException ex) {
+        return ErrorResponse.of(403, "FORBIDDEN", ex.getMessage());
+    }
+
+    @ExceptionHandler(Exception.class)
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    public ErrorResponse handleUnexpectedException(Exception ex) {
+        return ErrorResponse.of(500, "INTERNAL_SERVER_ERROR", "An unexpected error occurred");
     }
 }

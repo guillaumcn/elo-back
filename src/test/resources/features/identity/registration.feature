@@ -48,3 +48,24 @@ Feature: User Registration
     And the registration password is "short"
     When I submit the registration request
     Then I receive a 400 Bad Request response
+
+  Scenario: Registration with blank password
+    Given a registration request with username "alice"
+    And the registration email is "alice@example.com"
+    And the registration password is ""
+    When I submit the registration request
+    Then I receive a 400 Bad Request response
+
+  Scenario: Registration with username that is too short
+    Given a registration request with username "ab"
+    And the registration email is "alice@example.com"
+    And the registration password is "Str0ngP@ss!"
+    When I submit the registration request
+    Then I receive a 400 Bad Request response
+
+  Scenario: Registration with username that is too long
+    Given a registration request with username "this_username_is_way_too_long_and_exceeds_fifty_chars_"
+    And the registration email is "alice@example.com"
+    And the registration password is "Str0ngP@ss!"
+    When I submit the registration request
+    Then I receive a 400 Bad Request response
