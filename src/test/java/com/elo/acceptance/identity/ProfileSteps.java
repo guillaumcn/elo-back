@@ -64,6 +64,13 @@ public class ProfileSteps {
         pendingBio = bio;
     }
 
+    @And("a profile update request with avatar URL {string}")
+    public void aProfileUpdateRequestWithAvatarUrl(String avatarUrl) {
+        pendingUsername = null;
+        pendingAvatarUrl = avatarUrl;
+        pendingBio = null;
+    }
+
     @And("the profile update bio is {string}")
     public void theProfileUpdateBioIs(String bio) {
         pendingBio = bio;

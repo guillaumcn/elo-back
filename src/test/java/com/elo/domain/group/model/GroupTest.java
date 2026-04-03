@@ -113,4 +113,23 @@ class GroupTest {
                 .isInstanceOf(InvalidGroupException.class)
                 .hasMessageContaining("Group name is required");
     }
+
+    @Test
+    void shouldUpdateGroupDescriptionWhenWithinLimit() {
+        Group group = Group.create("My Group", null, JoinPolicy.OPEN, creatorId);
+        String validDescription = "a".repeat(1000);
+        group.update(null, validDescription, null);
+
+        assertThat(group.getDescription()).isEqualTo(validDescription);
+    }
+
+    @Test
+    void shouldThrowWhenDescriptionExceeds1000Characters() {
+        Group group = Group.create("My Group", null, JoinPolicy.OPEN, creatorId);
+        String tooLong = "a".repeat(1001);
+
+        assertThatThrownBy(() -> group.update(null, tooLong, null))
+                .isInstanceOf(InvalidGroupException.class)
+                .hasMessageContaining("1000 characters");
+    }
 }

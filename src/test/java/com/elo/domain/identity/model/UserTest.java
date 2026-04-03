@@ -104,4 +104,23 @@ class UserTest {
 
         assertThat(user1.getId()).isNotEqualTo(user2.getId());
     }
+
+    @Test
+    void shouldUpdateProfileBioWhenWithinLimit() {
+        User user = User.create("alice", "alice@example.com", "hashed");
+        String validBio = "a".repeat(500);
+        user.updateProfile(null, null, validBio);
+
+        assertThat(user.getBio()).isEqualTo(validBio);
+    }
+
+    @Test
+    void shouldRejectBioExceeding500Characters() {
+        User user = User.create("alice", "alice@example.com", "hashed");
+        String tooLongBio = "a".repeat(501);
+
+        assertThatThrownBy(() -> user.updateProfile(null, null, tooLongBio))
+                .isInstanceOf(InvalidUserException.class)
+                .hasMessageContaining("Bio must be at most 500 characters");
+    }
 }

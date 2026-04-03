@@ -24,6 +24,7 @@ public class User {
     private static final int USERNAME_MIN_LENGTH = 3;
     private static final int USERNAME_MAX_LENGTH = 50;
     private static final int PASSWORD_HASH_MIN_LENGTH = 1;
+    private static final int BIO_MAX_LENGTH = 500;
     private static final Pattern EMAIL_PATTERN = Pattern.compile("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$");
 
     @Builder
@@ -50,7 +51,10 @@ public class User {
             this.username = username;
         }
         if (avatarUrl != null) this.avatarUrl = avatarUrl;
-        if (bio != null) this.bio = bio;
+        if (bio != null) {
+            validateBio(bio);
+            this.bio = bio;
+        }
         this.updatedAt = Instant.now();
     }
 
@@ -99,6 +103,12 @@ public class User {
     private static void validatePasswordHash(String passwordHash) {
         if (passwordHash == null || passwordHash.length() < PASSWORD_HASH_MIN_LENGTH) {
             throw new InvalidUserException("Password hash is required");
+        }
+    }
+
+    private static void validateBio(String bio) {
+        if (bio.length() > BIO_MAX_LENGTH) {
+            throw new InvalidUserException("Bio must be at most " + BIO_MAX_LENGTH + " characters");
         }
     }
 }

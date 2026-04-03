@@ -64,7 +64,7 @@ class RegisterUserUseCaseTest {
 
         assertThatThrownBy(() -> registerUserUseCase.execute(command))
                 .isInstanceOf(UsernameAlreadyTakenException.class)
-                .hasMessageContaining("alice");
+                .hasMessageContaining("Username is already taken");
 
         verify(userRepositoryPort, never()).save(any());
     }
@@ -78,7 +78,7 @@ class RegisterUserUseCaseTest {
 
         assertThatThrownBy(() -> registerUserUseCase.execute(command))
                 .isInstanceOf(EmailAlreadyTakenException.class)
-                .hasMessageContaining("alice@example.com");
+                .hasMessageContaining("Email address is already registered");
 
         verify(userRepositoryPort, never()).save(any());
     }

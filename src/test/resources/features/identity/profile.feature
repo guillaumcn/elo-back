@@ -65,3 +65,15 @@ Feature: User Profile Management
     Then I receive a 200 OK response
     And the public profile username is "bob"
     And the public profile does not contain an email
+
+  Scenario: Update profile with non-HTTPS avatar URL returns 400
+    Given I am authenticated as "alice"
+    And a profile update request with avatar URL "http://example.com/avatar.png"
+    When I submit the profile update
+    Then I receive a 400 Bad Request response
+
+  Scenario: Update profile with bio exceeding 500 characters returns 400
+    Given I am authenticated as "alice"
+    And a profile update request with bio "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    When I submit the profile update
+    Then I receive a 400 Bad Request response

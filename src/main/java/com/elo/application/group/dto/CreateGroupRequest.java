@@ -13,6 +13,7 @@ public record CreateGroupRequest(
         @Size(max = 100, message = "Group name must be at most 100 characters")
         String name,
 
+        @Size(max = 1000, message = "Description must be at most 1000 characters")
         String description,
 
         @NotNull(message = "Join policy is required")

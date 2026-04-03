@@ -1,0 +1,9 @@
+databaseChangeLog:
+  - changeSet:
+      id: identity-002
+      author: elo-team
+      changes:
+        - modifyDataType:
+            tableName: users
+            columnName: bio
+            newDataType: varchar(500)

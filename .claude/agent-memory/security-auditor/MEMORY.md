@@ -1,0 +1,1 @@
+- [ELO Backend Security Architecture](project_security_architecture.md) — JWT config, Spring Security setup, password hashing, known issues from April 2026 full audit

@@ -8,6 +8,7 @@ import com.elo.domain.identity.exception.InvalidCredentialsException;
 import com.elo.domain.identity.exception.InvalidUserException;
 import com.elo.domain.identity.exception.UserNotFoundException;
 import com.elo.domain.identity.exception.UsernameAlreadyTakenException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -74,6 +75,12 @@ public class GlobalExceptionHandler {
     @ResponseStatus(HttpStatus.FORBIDDEN)
     public ErrorResponse handleGroupAccessDenied(GroupAccessDeniedException ex) {
         return ErrorResponse.of(403, "FORBIDDEN", ex.getMessage());
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public ErrorResponse handleDataIntegrityViolation(DataIntegrityViolationException ex) {
+        return ErrorResponse.of(409, "CONFLICT", "A resource with the same unique identifier already exists");
     }
 
     @ExceptionHandler(Exception.class)

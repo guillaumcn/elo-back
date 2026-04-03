@@ -21,6 +21,7 @@ public class Group {
     private int memberCount;
 
     private static final int NAME_MAX_LENGTH = 100;
+    private static final int DESCRIPTION_MAX_LENGTH = 1000;
 
     @Builder
     public Group(UUID id, String name, String description, JoinPolicy joinPolicy,
@@ -63,7 +64,10 @@ public class Group {
             validateName(name);
             this.name = name;
         }
-        if (description != null) this.description = description;
+        if (description != null) {
+            validateDescription(description);
+            this.description = description;
+        }
         if (joinPolicy != null) this.joinPolicy = joinPolicy;
         this.updatedAt = Instant.now();
     }
@@ -74,6 +78,12 @@ public class Group {
         }
         if (name.length() > NAME_MAX_LENGTH) {
             throw new InvalidGroupException("Group name must be at most " + NAME_MAX_LENGTH + " characters");
+        }
+    }
+
+    private static void validateDescription(String description) {
+        if (description.length() > DESCRIPTION_MAX_LENGTH) {
+            throw new InvalidGroupException("Description must be at most " + DESCRIPTION_MAX_LENGTH + " characters");
         }
     }
 }

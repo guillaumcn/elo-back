@@ -1,0 +1,9 @@
+databaseChangeLog:
+  - changeSet:
+      id: group-003
+      author: elo-team
+      changes:
+        - modifyDataType:
+            tableName: groups
+            columnName: description
+            newDataType: varchar(1000)

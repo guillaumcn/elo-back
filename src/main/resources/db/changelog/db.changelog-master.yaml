@@ -2,8 +2,12 @@ databaseChangeLog:
   # Identity
   - include:
       file: db/changelog/identity/001-create-users-table.yaml
+  - include:
+      file: db/changelog/identity/002-constrain-bio-column.yaml
   # Group
   - include:
       file: db/changelog/group/001-create-groups-table.yaml
   - include:
       file: db/changelog/group/002-create-group-members-table.yaml
+  - include:
+      file: db/changelog/group/003-constrain-description-column.yaml
