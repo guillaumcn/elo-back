@@ -3,10 +3,8 @@ package com.elo.application.group.usecase;
 import com.elo.application.group.command.JoinGroupByInvitationCommand;
 import com.elo.application.group.port.in.JoinGroupByInvitationPort;
 import com.elo.application.group.port.out.GroupInvitationRepositoryPort;
-import com.elo.application.group.port.out.GroupMemberRepositoryPort;
 import com.elo.application.group.port.out.GroupRepositoryPort;
 import com.elo.domain.group.exception.GroupAlreadyArchivedException;
-import com.elo.domain.group.exception.GroupAlreadyMemberException;
 import com.elo.domain.group.exception.GroupInvitationExpiredException;
 import com.elo.domain.group.exception.GroupInvitationNotFoundException;
 import com.elo.domain.group.exception.GroupNotFoundException;
@@ -21,7 +19,6 @@ import java.util.UUID;
 public class JoinGroupByInvitationUseCase implements JoinGroupByInvitationPort {
 
     private final GroupRepositoryPort groupRepositoryPort;
-    private final GroupMemberRepositoryPort groupMemberRepositoryPort;
     private final GroupInvitationRepositoryPort groupInvitationRepositoryPort;
 
     @Override
@@ -30,8 +27,10 @@ public class JoinGroupByInvitationUseCase implements JoinGroupByInvitationPort {
         ensureInvitationIsNotExpired(invitation);
         Group group = findGroupOrThrowNotFound(command.groupId());
         ensureGroupIsNotArchived(group);
-        ensureUserIsNotAlreadyMember(command.groupId(), command.userId());
-        return groupMemberRepositoryPort.save(GroupMember.createMember(command.groupId(), command.userId()));
+        GroupMember newMember = GroupMember.createMember(command.groupId(), command.userId());
+        group.addMember(newMember);
+        groupRepositoryPort.save(group);
+        return newMember;
     }
 
     private GroupInvitation findInvitationOrThrowNotFound(String token, UUID groupId) {
@@ -57,12 +56,6 @@ public class JoinGroupByInvitationUseCase implements JoinGroupByInvitationPort {
     private void ensureGroupIsNotArchived(Group group) {
         if (group.isArchived()) {
             throw new GroupAlreadyArchivedException();
-        }
-    }
-
-    private void ensureUserIsNotAlreadyMember(UUID groupId, UUID userId) {
-        if (groupMemberRepositoryPort.existsByGroupIdAndUserId(groupId, userId)) {
-            throw new GroupAlreadyMemberException();
         }
     }
 }

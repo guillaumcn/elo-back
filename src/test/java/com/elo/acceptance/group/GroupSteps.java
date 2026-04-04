@@ -230,9 +230,9 @@ public class GroupSteps {
 
     @When("I request my groups")
     public void iRequestMyGroups() {
-        scenarioContext.setListResponse(restTemplate.exchange(
+        scenarioContext.setResponse(restTemplate.exchange(
                 baseUrl() + "/groups", HttpMethod.GET,
-                authorizedEntity(null), List.class));
+                authorizedEntity(null), Map.class));
     }
 
     // ── Assertion steps ─────────────────────────────────────────────────────
@@ -261,14 +261,14 @@ public class GroupSteps {
 
     @And("the group list contains {string}")
     public void theGroupListContains(String groupName) {
-        List<Map<String, Object>> groups = (List<Map<String, Object>>) scenarioContext.getListResponse().getBody();
+        List<Map<String, Object>> groups = (List<Map<String, Object>>) scenarioContext.getResponse().getBody().get("content");
         assertThat(groups).isNotNull();
         assertThat(groups).anyMatch(g -> groupName.equals(g.get("name")));
     }
 
     @And("the group list is empty")
     public void theGroupListIsEmpty() {
-        List<?> groups = scenarioContext.getListResponse().getBody();
+        List<?> groups = (List<?>) scenarioContext.getResponse().getBody().get("content");
         assertThat(groups).isNotNull().isEmpty();
     }
 

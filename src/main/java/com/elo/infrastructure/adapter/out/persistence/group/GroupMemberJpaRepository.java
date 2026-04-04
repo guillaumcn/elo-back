@@ -16,6 +16,11 @@ public interface GroupMemberJpaRepository extends JpaRepository<GroupMemberJpaEn
 
     int countByGroupId(UUID groupId);
 
+    void deleteByGroupId(UUID groupId);
+
     @Query("SELECT m.groupId FROM GroupMemberJpaEntity m WHERE m.userId = :userId")
     List<UUID> findGroupIdsByUserId(@Param("userId") UUID userId);
+
+    @Query("SELECT m.groupId, COUNT(m) FROM GroupMemberJpaEntity m WHERE m.groupId IN :groupIds GROUP BY m.groupId")
+    List<Object[]> countsByGroupIds(@Param("groupIds") List<UUID> groupIds);
 }

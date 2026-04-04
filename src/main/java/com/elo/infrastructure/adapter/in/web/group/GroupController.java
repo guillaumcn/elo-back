@@ -20,6 +20,7 @@ import com.elo.application.group.port.in.JoinGroupPort;
 import com.elo.application.group.port.in.ListGroupsPort;
 import com.elo.application.group.port.in.UnarchiveGroupPort;
 import com.elo.application.group.port.in.UpdateGroupPort;
+import com.elo.application.shared.PagedResult;
 import com.elo.domain.group.model.Group;
 import com.elo.domain.group.model.GroupInvitation;
 import com.elo.domain.group.model.GroupMember;
@@ -43,6 +44,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -87,11 +89,16 @@ public class GroupController {
     @ApiResponse(responseCode = "401", description = "Unauthorized",
             content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     @GetMapping
-    public List<GroupResponse> listGroups(Authentication authentication) {
+    public PagedResult<GroupResponse> listGroups(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            Authentication authentication) {
         UUID userId = (UUID) authentication.getPrincipal();
-        return listGroupsPort.execute(userId).stream()
+        PagedResult<Group> result = listGroupsPort.execute(userId, page, size);
+        List<GroupResponse> content = result.content().stream()
                 .map(GroupResponseMapper::toResponse)
                 .toList();
+        return new PagedResult<>(content, result.page(), result.size(), result.totalElements(), result.totalPages());
     }
 
     @Operation(summary = "Get group details")

@@ -2,12 +2,13 @@ package com.elo.application.group.usecase;
 
 import com.elo.application.group.command.CreateGroupInvitationCommand;
 import com.elo.application.group.port.out.GroupInvitationRepositoryPort;
-import com.elo.application.group.port.out.GroupMemberRepositoryPort;
 import com.elo.application.group.port.out.GroupRepositoryPort;
 import com.elo.domain.group.exception.GroupNotFoundException;
 import com.elo.domain.group.model.Group;
 import com.elo.domain.group.model.GroupInvitation;
+import com.elo.domain.group.model.GroupMember;
 import com.elo.domain.group.model.JoinPolicy;
+import com.elo.domain.group.model.MemberRole;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -15,6 +16,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -31,9 +33,6 @@ class CreateGroupInvitationUseCaseTest {
     private GroupRepositoryPort groupRepositoryPort;
 
     @Mock
-    private GroupMemberRepositoryPort groupMemberRepositoryPort;
-
-    @Mock
     private GroupInvitationRepositoryPort groupInvitationRepositoryPort;
 
     private CreateGroupInvitationUseCase createGroupInvitationUseCase;
@@ -44,7 +43,7 @@ class CreateGroupInvitationUseCaseTest {
     @BeforeEach
     void setUp() {
         createGroupInvitationUseCase = new CreateGroupInvitationUseCase(
-                groupRepositoryPort, groupMemberRepositoryPort, groupInvitationRepositoryPort);
+                groupRepositoryPort, groupInvitationRepositoryPort);
     }
 
     @Test
@@ -52,7 +51,6 @@ class CreateGroupInvitationUseCaseTest {
         Group group = buildGroup();
         GroupInvitation savedInvitation = buildInvitation(null);
         when(groupRepositoryPort.findById(groupId)).thenReturn(Optional.of(group));
-        when(groupMemberRepositoryPort.existsByGroupIdAndUserId(groupId, invitedBy)).thenReturn(true);
         when(groupInvitationRepositoryPort.save(any(GroupInvitation.class))).thenReturn(savedInvitation);
 
         GroupInvitation result = createGroupInvitationUseCase.execute(
@@ -69,7 +67,6 @@ class CreateGroupInvitationUseCaseTest {
         Group group = buildGroup();
         GroupInvitation savedInvitation = buildInvitation(expiresAt);
         when(groupRepositoryPort.findById(groupId)).thenReturn(Optional.of(group));
-        when(groupMemberRepositoryPort.existsByGroupIdAndUserId(groupId, invitedBy)).thenReturn(true);
         when(groupInvitationRepositoryPort.save(any(GroupInvitation.class))).thenReturn(savedInvitation);
 
         GroupInvitation result = createGroupInvitationUseCase.execute(
@@ -89,12 +86,12 @@ class CreateGroupInvitationUseCaseTest {
 
     @Test
     void shouldThrowNotFoundWhenRequesterIsNotMember() {
+        UUID nonMemberId = UUID.randomUUID();
         Group group = buildGroup();
         when(groupRepositoryPort.findById(groupId)).thenReturn(Optional.of(group));
-        when(groupMemberRepositoryPort.existsByGroupIdAndUserId(groupId, invitedBy)).thenReturn(false);
 
         assertThatThrownBy(() -> createGroupInvitationUseCase.execute(
-                new CreateGroupInvitationCommand(groupId, invitedBy, null)))
+                new CreateGroupInvitationCommand(groupId, nonMemberId, null)))
                 .isInstanceOf(GroupNotFoundException.class);
     }
 
@@ -107,7 +104,13 @@ class CreateGroupInvitationUseCaseTest {
                 .createdBy(invitedBy)
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
-                .memberCount(1)
+                .members(List.of(GroupMember.builder()
+                        .id(UUID.randomUUID())
+                        .groupId(groupId)
+                        .userId(invitedBy)
+                        .role(MemberRole.ADMIN)
+                        .joinedAt(Instant.now())
+                        .build()))
                 .build();
     }
 

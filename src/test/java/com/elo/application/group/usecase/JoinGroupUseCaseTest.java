@@ -1,7 +1,6 @@
 package com.elo.application.group.usecase;
 
 import com.elo.application.group.command.JoinGroupCommand;
-import com.elo.application.group.port.out.GroupMemberRepositoryPort;
 import com.elo.application.group.port.out.GroupRepositoryPort;
 import com.elo.domain.group.exception.GroupAlreadyArchivedException;
 import com.elo.domain.group.exception.GroupAlreadyMemberException;
@@ -18,6 +17,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -33,31 +33,27 @@ class JoinGroupUseCaseTest {
     @Mock
     private GroupRepositoryPort groupRepositoryPort;
 
-    @Mock
-    private GroupMemberRepositoryPort groupMemberRepositoryPort;
-
     private JoinGroupUseCase joinGroupUseCase;
 
     private final UUID groupId = UUID.randomUUID();
     private final UUID userId = UUID.randomUUID();
+    private final UUID adminId = UUID.randomUUID();
 
     @BeforeEach
     void setUp() {
-        joinGroupUseCase = new JoinGroupUseCase(groupRepositoryPort, groupMemberRepositoryPort);
+        joinGroupUseCase = new JoinGroupUseCase(groupRepositoryPort);
     }
 
     @Test
     void shouldJoinOpenGroup() {
         Group group = buildGroup(JoinPolicy.OPEN, false);
-        GroupMember savedMember = buildMember();
         when(groupRepositoryPort.findById(groupId)).thenReturn(Optional.of(group));
-        when(groupMemberRepositoryPort.existsByGroupIdAndUserId(groupId, userId)).thenReturn(false);
-        when(groupMemberRepositoryPort.save(any(GroupMember.class))).thenReturn(savedMember);
+        when(groupRepositoryPort.save(any(Group.class))).thenAnswer(i -> i.getArgument(0));
 
         GroupMember result = joinGroupUseCase.execute(new JoinGroupCommand(groupId, userId));
 
         assertThat(result.getRole()).isEqualTo(MemberRole.MEMBER);
-        verify(groupMemberRepositoryPort).save(any(GroupMember.class));
+        verify(groupRepositoryPort).save(any(Group.class));
     }
 
     @Test
@@ -88,9 +84,8 @@ class JoinGroupUseCaseTest {
 
     @Test
     void shouldThrowWhenUserIsAlreadyMember() {
-        Group group = buildGroup(JoinPolicy.OPEN, false);
+        Group group = buildGroupWithMember(userId);
         when(groupRepositoryPort.findById(groupId)).thenReturn(Optional.of(group));
-        when(groupMemberRepositoryPort.existsByGroupIdAndUserId(groupId, userId)).thenReturn(true);
 
         assertThatThrownBy(() -> joinGroupUseCase.execute(new JoinGroupCommand(groupId, userId)))
                 .isInstanceOf(GroupAlreadyMemberException.class);
@@ -102,19 +97,41 @@ class JoinGroupUseCaseTest {
                 .name("Test Group")
                 .joinPolicy(joinPolicy)
                 .archived(archived)
-                .createdBy(UUID.randomUUID())
+                .createdBy(adminId)
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
-                .memberCount(1)
+                .members(List.of(buildAdminMember()))
                 .build();
     }
 
-    private GroupMember buildMember() {
+    private Group buildGroupWithMember(UUID memberUserId) {
+        return Group.builder()
+                .id(groupId)
+                .name("Test Group")
+                .joinPolicy(JoinPolicy.OPEN)
+                .archived(false)
+                .createdBy(adminId)
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now())
+                .members(List.of(
+                        buildAdminMember(),
+                        GroupMember.builder()
+                                .id(UUID.randomUUID())
+                                .groupId(groupId)
+                                .userId(memberUserId)
+                                .role(MemberRole.MEMBER)
+                                .joinedAt(Instant.now())
+                                .build()
+                ))
+                .build();
+    }
+
+    private GroupMember buildAdminMember() {
         return GroupMember.builder()
                 .id(UUID.randomUUID())
                 .groupId(groupId)
-                .userId(userId)
-                .role(MemberRole.MEMBER)
+                .userId(adminId)
+                .role(MemberRole.ADMIN)
                 .joinedAt(Instant.now())
                 .build();
     }

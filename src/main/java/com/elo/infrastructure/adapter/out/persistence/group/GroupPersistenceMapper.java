@@ -6,10 +6,15 @@ import com.elo.domain.group.model.GroupMember;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class GroupPersistenceMapper {
 
     public static GroupJpaEntity toJpaEntity(Group group) {
+        List<GroupMemberJpaEntity> memberEntities = group.getMembers().stream()
+                .map(GroupPersistenceMapper::toJpaEntity)
+                .toList();
         return GroupJpaEntity.builder()
                 .id(group.getId())
                 .name(group.getName())
@@ -19,10 +24,14 @@ public class GroupPersistenceMapper {
                 .createdBy(group.getCreatedBy())
                 .createdAt(group.getCreatedAt())
                 .updatedAt(group.getUpdatedAt())
+                .members(memberEntities)
                 .build();
     }
 
-    public static Group toDomain(GroupJpaEntity entity, int memberCount) {
+    public static Group toDomain(GroupJpaEntity entity) {
+        List<GroupMember> members = entity.getMembers().stream()
+                .map(GroupPersistenceMapper::toDomain)
+                .toList();
         return Group.builder()
                 .id(entity.getId())
                 .name(entity.getName())
@@ -32,7 +41,7 @@ public class GroupPersistenceMapper {
                 .createdBy(entity.getCreatedBy())
                 .createdAt(entity.getCreatedAt())
                 .updatedAt(entity.getUpdatedAt())
-                .memberCount(memberCount)
+                .members(members)
                 .build();
     }
 

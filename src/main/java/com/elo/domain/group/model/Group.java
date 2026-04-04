@@ -1,12 +1,16 @@
 package com.elo.domain.group.model;
 
 import com.elo.domain.group.exception.GroupAlreadyArchivedException;
+import com.elo.domain.group.exception.GroupAlreadyMemberException;
 import com.elo.domain.group.exception.GroupNotArchivedException;
 import com.elo.domain.group.exception.InvalidGroupException;
 import lombok.Builder;
 import lombok.Getter;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.UUID;
 
 @Getter
@@ -20,14 +24,15 @@ public class Group {
     private UUID createdBy;
     private Instant createdAt;
     private Instant updatedAt;
-    private int memberCount;
+    private List<GroupMember> members;
 
     private static final int NAME_MAX_LENGTH = 100;
     private static final int DESCRIPTION_MAX_LENGTH = 1000;
 
     @Builder
     public Group(UUID id, String name, String description, JoinPolicy joinPolicy,
-                 boolean archived, UUID createdBy, Instant createdAt, Instant updatedAt, int memberCount) {
+                 boolean archived, UUID createdBy, Instant createdAt, Instant updatedAt,
+                 List<GroupMember> members) {
         validateName(name);
         if (joinPolicy == null) {
             throw new InvalidGroupException("Join policy is required");
@@ -43,12 +48,12 @@ public class Group {
         this.createdBy = createdBy;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
-        this.memberCount = memberCount;
+        this.members = members != null ? new ArrayList<>(members) : new ArrayList<>();
     }
 
     public static Group create(String name, String description, JoinPolicy joinPolicy, UUID createdBy) {
         Instant now = Instant.now();
-        return Group.builder()
+        Group group = Group.builder()
                 .id(UUID.randomUUID())
                 .name(name)
                 .description(description)
@@ -57,8 +62,35 @@ public class Group {
                 .createdBy(createdBy)
                 .createdAt(now)
                 .updatedAt(now)
-                .memberCount(0)
                 .build();
+        group.addMember(GroupMember.createAdmin(group.getId(), createdBy));
+        return group;
+    }
+
+    public void addMember(GroupMember member) {
+        boolean alreadyMember = this.members.stream()
+                .anyMatch(m -> m.getUserId().equals(member.getUserId()));
+        if (alreadyMember) {
+            throw new GroupAlreadyMemberException();
+        }
+        this.members.add(member);
+    }
+
+    public int getMemberCount() {
+        return this.members.size();
+    }
+
+    public boolean hasMember(UUID userId) {
+        return this.members.stream().anyMatch(m -> m.getUserId().equals(userId));
+    }
+
+    public boolean hasAdmin(UUID userId) {
+        return this.members.stream()
+                .anyMatch(m -> m.getUserId().equals(userId) && m.getRole() == MemberRole.ADMIN);
+    }
+
+    public List<GroupMember> getMembers() {
+        return Collections.unmodifiableList(this.members);
     }
 
     public void update(String name, String description, JoinPolicy joinPolicy) {

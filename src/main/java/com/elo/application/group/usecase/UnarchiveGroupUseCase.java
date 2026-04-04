@@ -2,12 +2,10 @@ package com.elo.application.group.usecase;
 
 import com.elo.application.group.command.UnarchiveGroupCommand;
 import com.elo.application.group.port.in.UnarchiveGroupPort;
-import com.elo.application.group.port.out.GroupMemberRepositoryPort;
 import com.elo.application.group.port.out.GroupRepositoryPort;
 import com.elo.domain.group.exception.GroupAccessDeniedException;
 import com.elo.domain.group.exception.GroupNotFoundException;
 import com.elo.domain.group.model.Group;
-import com.elo.domain.group.model.MemberRole;
 import lombok.RequiredArgsConstructor;
 
 import java.util.UUID;
@@ -16,12 +14,11 @@ import java.util.UUID;
 public class UnarchiveGroupUseCase implements UnarchiveGroupPort {
 
     private final GroupRepositoryPort groupRepositoryPort;
-    private final GroupMemberRepositoryPort groupMemberRepositoryPort;
 
     @Override
     public Group execute(UnarchiveGroupCommand command) {
         Group group = findGroupOrThrowNotFound(command.groupId());
-        ensureRequesterIsAdmin(command.groupId(), command.requesterId());
+        ensureRequesterIsAdmin(group, command.requesterId());
         group.unarchive();
         return groupRepositoryPort.save(group);
     }
@@ -31,10 +28,10 @@ public class UnarchiveGroupUseCase implements UnarchiveGroupPort {
                 .orElseThrow(() -> new GroupNotFoundException(groupId));
     }
 
-    private void ensureRequesterIsAdmin(UUID groupId, UUID requesterId) {
-        if (!groupMemberRepositoryPort.existsByGroupIdAndUserIdAndRole(groupId, requesterId, MemberRole.ADMIN)) {
-            if (!groupMemberRepositoryPort.existsByGroupIdAndUserId(groupId, requesterId)) {
-                throw new GroupNotFoundException(groupId);
+    private void ensureRequesterIsAdmin(Group group, UUID requesterId) {
+        if (!group.hasAdmin(requesterId)) {
+            if (!group.hasMember(requesterId)) {
+                throw new GroupNotFoundException(group.getId());
             }
             throw new GroupAccessDeniedException("Only group admins can unarchive the group");
         }

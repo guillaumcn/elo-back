@@ -1,0 +1,1 @@
+- [Audit 2026-04-04](audit_2026-04-04_findings.md) -- N+1 queries, missing transactions, missing indexes, double JWT parse

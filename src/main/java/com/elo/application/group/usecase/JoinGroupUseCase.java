@@ -2,9 +2,7 @@ package com.elo.application.group.usecase;
 
 import com.elo.application.group.command.JoinGroupCommand;
 import com.elo.application.group.port.in.JoinGroupPort;
-import com.elo.application.group.port.out.GroupMemberRepositoryPort;
 import com.elo.application.group.port.out.GroupRepositoryPort;
-import com.elo.domain.group.exception.GroupAlreadyMemberException;
 import com.elo.domain.group.exception.GroupAlreadyArchivedException;
 import com.elo.domain.group.exception.GroupJoinPolicyViolationException;
 import com.elo.domain.group.exception.GroupNotFoundException;
@@ -19,15 +17,16 @@ import java.util.UUID;
 public class JoinGroupUseCase implements JoinGroupPort {
 
     private final GroupRepositoryPort groupRepositoryPort;
-    private final GroupMemberRepositoryPort groupMemberRepositoryPort;
 
     @Override
     public GroupMember execute(JoinGroupCommand command) {
         Group group = findGroupOrThrowNotFound(command.groupId());
         ensureGroupIsNotArchived(group);
         ensureGroupIsOpen(group);
-        ensureUserIsNotAlreadyMember(command.groupId(), command.userId());
-        return groupMemberRepositoryPort.save(GroupMember.createMember(command.groupId(), command.userId()));
+        GroupMember newMember = GroupMember.createMember(command.groupId(), command.userId());
+        group.addMember(newMember);
+        groupRepositoryPort.save(group);
+        return newMember;
     }
 
     private Group findGroupOrThrowNotFound(UUID groupId) {
@@ -44,12 +43,6 @@ public class JoinGroupUseCase implements JoinGroupPort {
     private void ensureGroupIsOpen(Group group) {
         if (group.getJoinPolicy() != JoinPolicy.OPEN) {
             throw new GroupJoinPolicyViolationException();
-        }
-    }
-
-    private void ensureUserIsNotAlreadyMember(UUID groupId, UUID userId) {
-        if (groupMemberRepositoryPort.existsByGroupIdAndUserId(groupId, userId)) {
-            throw new GroupAlreadyMemberException();
         }
     }
 }

@@ -1,8 +1,11 @@
 package com.elo.application.group.usecase;
 
 import com.elo.application.group.port.out.GroupRepositoryPort;
+import com.elo.application.shared.PagedResult;
 import com.elo.domain.group.model.Group;
+import com.elo.domain.group.model.GroupMember;
 import com.elo.domain.group.model.JoinPolicy;
+import com.elo.domain.group.model.MemberRole;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -34,33 +37,42 @@ class ListGroupsUseCaseTest {
     @Test
     void shouldReturnGroupsForUser() {
         List<Group> groups = List.of(buildGroup("Ping Pong Club"), buildGroup("Chess Club"));
-        when(groupRepositoryPort.findAllByMemberId(userId)).thenReturn(groups);
+        when(groupRepositoryPort.findAllByMemberId(userId, 0, 20)).thenReturn(new PagedResult<>(groups, 0, 20, 2L, 1));
 
-        List<Group> result = listGroupsUseCase.execute(userId);
+        PagedResult<Group> result = listGroupsUseCase.execute(userId, 0, 20);
 
-        assertThat(result).hasSize(2);
-        assertThat(result).extracting(Group::getName).containsExactlyInAnyOrder("Ping Pong Club", "Chess Club");
+        assertThat(result.content()).hasSize(2);
+        assertThat(result.content()).extracting(Group::getName).containsExactlyInAnyOrder("Ping Pong Club", "Chess Club");
+        assertThat(result.totalElements()).isEqualTo(2L);
     }
 
     @Test
     void shouldReturnEmptyListWhenUserHasNoGroups() {
-        when(groupRepositoryPort.findAllByMemberId(userId)).thenReturn(List.of());
+        when(groupRepositoryPort.findAllByMemberId(userId, 0, 20)).thenReturn(new PagedResult<>(List.of(), 0, 20, 0L, 0));
 
-        List<Group> result = listGroupsUseCase.execute(userId);
+        PagedResult<Group> result = listGroupsUseCase.execute(userId, 0, 20);
 
-        assertThat(result).isEmpty();
+        assertThat(result.content()).isEmpty();
+        assertThat(result.totalElements()).isZero();
     }
 
     private Group buildGroup(String name) {
+        UUID groupId = UUID.randomUUID();
         return Group.builder()
-                .id(UUID.randomUUID())
+                .id(groupId)
                 .name(name)
                 .joinPolicy(JoinPolicy.OPEN)
                 .archived(false)
                 .createdBy(userId)
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
-                .memberCount(1)
+                .members(List.of(GroupMember.builder()
+                        .id(UUID.randomUUID())
+                        .groupId(groupId)
+                        .userId(userId)
+                        .role(MemberRole.ADMIN)
+                        .joinedAt(Instant.now())
+                        .build()))
                 .build();
     }
 }

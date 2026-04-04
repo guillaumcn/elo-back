@@ -1,0 +1,11 @@
+databaseChangeLog:
+  - changeSet:
+      id: group-005
+      author: elo-team
+      changes:
+        - createIndex:
+            tableName: group_members
+            indexName: idx_group_members_user_id
+            columns:
+              - column:
+                  name: user_id

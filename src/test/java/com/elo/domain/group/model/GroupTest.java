@@ -1,6 +1,7 @@
 package com.elo.domain.group.model;
 
 import com.elo.domain.group.exception.GroupAlreadyArchivedException;
+import com.elo.domain.group.exception.GroupAlreadyMemberException;
 import com.elo.domain.group.exception.GroupNotArchivedException;
 import com.elo.domain.group.exception.InvalidGroupException;
 import org.junit.jupiter.api.Test;
@@ -26,7 +27,10 @@ class GroupTest {
         assertThat(group.getCreatedBy()).isEqualTo(creatorId);
         assertThat(group.getCreatedAt()).isNotNull();
         assertThat(group.getUpdatedAt()).isNotNull();
-        assertThat(group.getMemberCount()).isZero();
+        assertThat(group.getMemberCount()).isEqualTo(1);
+        assertThat(group.getMembers()).hasSize(1);
+        assertThat(group.getMembers().get(0).getUserId()).isEqualTo(creatorId);
+        assertThat(group.getMembers().get(0).getRole()).isEqualTo(MemberRole.ADMIN);
     }
 
     @Test
@@ -188,5 +192,52 @@ class GroupTest {
 
         assertThatThrownBy(group::unarchive)
                 .isInstanceOf(GroupNotArchivedException.class);
+    }
+
+    @Test
+    void shouldAddMemberToGroup() {
+        Group group = Group.create("My Group", null, JoinPolicy.OPEN, creatorId);
+        UUID newUserId = UUID.randomUUID();
+        GroupMember newMember = GroupMember.createMember(group.getId(), newUserId);
+
+        group.addMember(newMember);
+
+        assertThat(group.getMemberCount()).isEqualTo(2);
+        assertThat(group.hasMember(newUserId)).isTrue();
+    }
+
+    @Test
+    void shouldThrowWhenAddingDuplicateMember() {
+        Group group = Group.create("My Group", null, JoinPolicy.OPEN, creatorId);
+        GroupMember duplicate = GroupMember.createMember(group.getId(), creatorId);
+
+        assertThatThrownBy(() -> group.addMember(duplicate))
+                .isInstanceOf(GroupAlreadyMemberException.class);
+    }
+
+    @Test
+    void shouldDetectMemberPresence() {
+        Group group = Group.create("My Group", null, JoinPolicy.OPEN, creatorId);
+
+        assertThat(group.hasMember(creatorId)).isTrue();
+        assertThat(group.hasMember(UUID.randomUUID())).isFalse();
+    }
+
+    @Test
+    void shouldDetectAdminPresence() {
+        Group group = Group.create("My Group", null, JoinPolicy.OPEN, creatorId);
+        UUID memberId = UUID.randomUUID();
+        group.addMember(GroupMember.createMember(group.getId(), memberId));
+
+        assertThat(group.hasAdmin(creatorId)).isTrue();
+        assertThat(group.hasAdmin(memberId)).isFalse();
+    }
+
+    @Test
+    void shouldReturnUnmodifiableMembersList() {
+        Group group = Group.create("My Group", null, JoinPolicy.OPEN, creatorId);
+
+        assertThatThrownBy(() -> group.getMembers().add(GroupMember.createMember(group.getId(), UUID.randomUUID())))
+                .isInstanceOf(UnsupportedOperationException.class);
     }
 }

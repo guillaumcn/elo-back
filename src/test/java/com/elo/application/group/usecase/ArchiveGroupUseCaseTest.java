@@ -1,12 +1,12 @@
 package com.elo.application.group.usecase;
 
 import com.elo.application.group.command.ArchiveGroupCommand;
-import com.elo.application.group.port.out.GroupMemberRepositoryPort;
 import com.elo.application.group.port.out.GroupRepositoryPort;
 import com.elo.domain.group.exception.GroupAccessDeniedException;
 import com.elo.domain.group.exception.GroupAlreadyArchivedException;
 import com.elo.domain.group.exception.GroupNotFoundException;
 import com.elo.domain.group.model.Group;
+import com.elo.domain.group.model.GroupMember;
 import com.elo.domain.group.model.JoinPolicy;
 import com.elo.domain.group.model.MemberRole;
 import org.junit.jupiter.api.BeforeEach;
@@ -16,6 +16,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -31,9 +32,6 @@ class ArchiveGroupUseCaseTest {
     @Mock
     private GroupRepositoryPort groupRepositoryPort;
 
-    @Mock
-    private GroupMemberRepositoryPort groupMemberRepositoryPort;
-
     private ArchiveGroupUseCase archiveGroupUseCase;
 
     private final UUID groupId = UUID.randomUUID();
@@ -42,14 +40,13 @@ class ArchiveGroupUseCaseTest {
 
     @BeforeEach
     void setUp() {
-        archiveGroupUseCase = new ArchiveGroupUseCase(groupRepositoryPort, groupMemberRepositoryPort);
+        archiveGroupUseCase = new ArchiveGroupUseCase(groupRepositoryPort);
     }
 
     @Test
     void shouldArchiveGroupWhenRequesterIsAdmin() {
         Group group = buildGroup(false);
         when(groupRepositoryPort.findById(groupId)).thenReturn(Optional.of(group));
-        when(groupMemberRepositoryPort.existsByGroupIdAndUserIdAndRole(groupId, adminId, MemberRole.ADMIN)).thenReturn(true);
         when(groupRepositoryPort.save(any(Group.class))).thenAnswer(i -> i.getArgument(0));
 
         Group result = archiveGroupUseCase.execute(new ArchiveGroupCommand(groupId, adminId));
@@ -70,19 +67,16 @@ class ArchiveGroupUseCaseTest {
     void shouldThrowNotFoundWhenRequesterIsNotMember() {
         Group group = buildGroup(false);
         when(groupRepositoryPort.findById(groupId)).thenReturn(Optional.of(group));
-        when(groupMemberRepositoryPort.existsByGroupIdAndUserIdAndRole(groupId, memberId, MemberRole.ADMIN)).thenReturn(false);
-        when(groupMemberRepositoryPort.existsByGroupIdAndUserId(groupId, memberId)).thenReturn(false);
 
-        assertThatThrownBy(() -> archiveGroupUseCase.execute(new ArchiveGroupCommand(groupId, memberId)))
+        UUID nonMemberId = UUID.randomUUID();
+        assertThatThrownBy(() -> archiveGroupUseCase.execute(new ArchiveGroupCommand(groupId, nonMemberId)))
                 .isInstanceOf(GroupNotFoundException.class);
     }
 
     @Test
     void shouldThrowForbiddenWhenRequesterIsNotAdmin() {
-        Group group = buildGroup(false);
+        Group group = buildGroupWithMember(memberId);
         when(groupRepositoryPort.findById(groupId)).thenReturn(Optional.of(group));
-        when(groupMemberRepositoryPort.existsByGroupIdAndUserIdAndRole(groupId, memberId, MemberRole.ADMIN)).thenReturn(false);
-        when(groupMemberRepositoryPort.existsByGroupIdAndUserId(groupId, memberId)).thenReturn(true);
 
         assertThatThrownBy(() -> archiveGroupUseCase.execute(new ArchiveGroupCommand(groupId, memberId)))
                 .isInstanceOf(GroupAccessDeniedException.class);
@@ -92,7 +86,6 @@ class ArchiveGroupUseCaseTest {
     void shouldThrowWhenGroupIsAlreadyArchived() {
         Group group = buildGroup(true);
         when(groupRepositoryPort.findById(groupId)).thenReturn(Optional.of(group));
-        when(groupMemberRepositoryPort.existsByGroupIdAndUserIdAndRole(groupId, adminId, MemberRole.ADMIN)).thenReturn(true);
 
         assertThatThrownBy(() -> archiveGroupUseCase.execute(new ArchiveGroupCommand(groupId, adminId)))
                 .isInstanceOf(GroupAlreadyArchivedException.class);
@@ -107,7 +100,43 @@ class ArchiveGroupUseCaseTest {
                 .createdBy(adminId)
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
-                .memberCount(2)
+                .members(List.of(
+                        GroupMember.builder()
+                                .id(UUID.randomUUID())
+                                .groupId(groupId)
+                                .userId(adminId)
+                                .role(MemberRole.ADMIN)
+                                .joinedAt(Instant.now())
+                                .build()
+                ))
+                .build();
+    }
+
+    private Group buildGroupWithMember(UUID memberUserId) {
+        return Group.builder()
+                .id(groupId)
+                .name("Ping Pong Club")
+                .joinPolicy(JoinPolicy.OPEN)
+                .archived(false)
+                .createdBy(adminId)
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now())
+                .members(List.of(
+                        GroupMember.builder()
+                                .id(UUID.randomUUID())
+                                .groupId(groupId)
+                                .userId(adminId)
+                                .role(MemberRole.ADMIN)
+                                .joinedAt(Instant.now())
+                                .build(),
+                        GroupMember.builder()
+                                .id(UUID.randomUUID())
+                                .groupId(groupId)
+                                .userId(memberUserId)
+                                .role(MemberRole.MEMBER)
+                                .joinedAt(Instant.now())
+                                .build()
+                ))
                 .build();
     }
 }
