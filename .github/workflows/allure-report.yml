@@ -6,9 +6,6 @@ on:
   pull_request:
     branches: [ main ]
 
-permissions:
-  contents: write
-
 jobs:
   allure-report:
     name: Allure Report
@@ -26,37 +23,14 @@ jobs:
             | tar -xz -C /opt
           echo "/opt/allure-2.27.0/bin" >> $GITHUB_PATH
 
-      - name: Load Allure history
-        if: github.ref == 'refs/heads/main'
-        uses: actions/checkout@v4
-        continue-on-error: true
-        with:
-          ref: gh-pages
-          path: gh-pages
-
-      - name: Copy history into results
-        if: github.ref == 'refs/heads/main'
-        run: |
-          if [ -d gh-pages/history ]; then
-            cp -r gh-pages/history target/allure-results/history
-          fi
-
       - name: Generate Allure report
         if: always()
         run: allure generate target/allure-results --single-file --clean -o allure-report
 
-      - name: Upload Allure report artifact
+      - name: Upload Allure report
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: allure-report
-          path: allure-report
+          path: allure-report/index.html
           retention-days: 30
-
-      - name: Deploy Allure report to GitHub Pages
-        if: always() && github.ref == 'refs/heads/main'
-        uses: peaceiris/actions-gh-pages@v4
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_branch: gh-pages
-          publish_dir: allure-report
