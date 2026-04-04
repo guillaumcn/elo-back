@@ -41,4 +41,21 @@ public class GroupMember {
                 .joinedAt(Instant.now())
                 .build();
     }
+
+    public static GroupMember createMember(UUID groupId, UUID userId) {
+        if (groupId == null) {
+            throw new InvalidGroupException("Group ID is required");
+        }
+        if (userId == null) {
+            throw new InvalidGroupException("User ID is required");
+        }
+
+        return GroupMember.builder()
+                .id(UUID.randomUUID())
+                .groupId(groupId)
+                .userId(userId)
+                .role(MemberRole.MEMBER)
+                .joinedAt(Instant.now())
+                .build();
+    }
 }

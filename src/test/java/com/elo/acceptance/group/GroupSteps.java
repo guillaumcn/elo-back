@@ -1,7 +1,9 @@
 package com.elo.acceptance.group;
 
 import com.elo.acceptance.ScenarioContext;
+import com.elo.application.group.dto.CreateGroupInvitationRequest;
 import com.elo.application.group.dto.CreateGroupRequest;
+import com.elo.application.group.dto.JoinByInvitationRequest;
 import com.elo.application.group.dto.UpdateGroupRequest;
 import com.elo.application.identity.dto.LoginRequest;
 import com.elo.application.identity.dto.RegisterRequest;
@@ -11,6 +13,7 @@ import com.elo.infrastructure.adapter.out.persistence.group.GroupMemberJpaEntity
 import com.elo.infrastructure.adapter.out.persistence.group.GroupMemberJpaRepository;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
+import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.web.client.TestRestTemplate;
@@ -51,6 +54,9 @@ public class GroupSteps {
 
     private UUID currentGroupId;
     private String lastOtherUserToken;
+    private String lastInvitationToken;
+    private String pendingInvitationToken;
+    private String pendingInvitationExpiresAt;
 
     private String baseUrl() {
         return "http://localhost:" + port + "/api/v1";
@@ -309,6 +315,179 @@ public class GroupSteps {
     @And("the group is not archived")
     public void theGroupIsNotArchived() {
         assertThat(scenarioContext.getResponse().getBody().get("archived")).isEqualTo(false);
+    }
+
+    // ── Join steps ───────────────────────────────────────────────────────────
+
+    @And("another user has created a group named {string} with join policy {string}")
+    public void anotherUserHasCreatedAGroupNamedWithJoinPolicy(String name, String joinPolicy) {
+        String otherToken = registerAndLoginOtherUser();
+        lastOtherUserToken = otherToken;
+        CreateGroupRequest request = new CreateGroupRequest(name, null, JoinPolicy.valueOf(joinPolicy));
+        var response = restTemplate.exchange(
+                baseUrl() + "/groups", HttpMethod.POST,
+                entityWithToken(request, otherToken), Map.class);
+        currentGroupId = UUID.fromString((String) response.getBody().get("id"));
+    }
+
+    @And("another user has created a group named {string} with join policy {string} and archived it")
+    public void anotherUserHasCreatedAGroupWithJoinPolicyAndArchivedIt(String name, String joinPolicy) {
+        String otherToken = registerAndLoginOtherUser();
+        lastOtherUserToken = otherToken;
+        CreateGroupRequest request = new CreateGroupRequest(name, null, JoinPolicy.valueOf(joinPolicy));
+        var response = restTemplate.exchange(
+                baseUrl() + "/groups", HttpMethod.POST,
+                entityWithToken(request, otherToken), Map.class);
+        currentGroupId = UUID.fromString((String) response.getBody().get("id"));
+        restTemplate.exchange(
+                baseUrl() + "/groups/" + currentGroupId + "/archive", HttpMethod.POST,
+                entityWithToken(null, otherToken), Map.class);
+    }
+
+    @And("another user has created a group named {string} with join policy {string} and created an invitation")
+    public void anotherUserHasCreatedAGroupWithJoinPolicyAndCreatedAnInvitation(String name, String joinPolicy) {
+        String otherToken = registerAndLoginOtherUser();
+        lastOtherUserToken = otherToken;
+        CreateGroupRequest request = new CreateGroupRequest(name, null, JoinPolicy.valueOf(joinPolicy));
+        var response = restTemplate.exchange(
+                baseUrl() + "/groups", HttpMethod.POST,
+                entityWithToken(request, otherToken), Map.class);
+        currentGroupId = UUID.fromString((String) response.getBody().get("id"));
+        var invResponse = restTemplate.exchange(
+                baseUrl() + "/groups/" + currentGroupId + "/invitations", HttpMethod.POST,
+                entityWithToken(null, otherToken), Map.class);
+        lastInvitationToken = (String) invResponse.getBody().get("token");
+        pendingInvitationToken = lastInvitationToken;
+    }
+
+    @And("another user has created a group named {string} with join policy {string} and created an expired invitation")
+    public void anotherUserHasCreatedAGroupWithJoinPolicyAndCreatedAnExpiredInvitation(String name, String joinPolicy) {
+        String otherToken = registerAndLoginOtherUser();
+        lastOtherUserToken = otherToken;
+        CreateGroupRequest request = new CreateGroupRequest(name, null, JoinPolicy.valueOf(joinPolicy));
+        var response = restTemplate.exchange(
+                baseUrl() + "/groups", HttpMethod.POST,
+                entityWithToken(request, otherToken), Map.class);
+        currentGroupId = UUID.fromString((String) response.getBody().get("id"));
+        CreateGroupInvitationRequest invRequest = new CreateGroupInvitationRequest(Instant.now().minusSeconds(1));
+        var invResponse = restTemplate.exchange(
+                baseUrl() + "/groups/" + currentGroupId + "/invitations", HttpMethod.POST,
+                entityWithToken(invRequest, otherToken), Map.class);
+        lastInvitationToken = (String) invResponse.getBody().get("token");
+        pendingInvitationToken = lastInvitationToken;
+    }
+
+    @And("another user has created a group named {string} with join policy {string} and added me as a member and created an invitation")
+    public void anotherUserHasCreatedAGroupAndAddedMeAsMemberAndCreatedAnInvitation(String name, String joinPolicy) {
+        anotherUserHasCreatedAGroupAndAddedMeAsMember(name, joinPolicy);
+        var invResponse = restTemplate.exchange(
+                baseUrl() + "/groups/" + currentGroupId + "/invitations", HttpMethod.POST,
+                entityWithToken(null, lastOtherUserToken), Map.class);
+        lastInvitationToken = (String) invResponse.getBody().get("token");
+        pendingInvitationToken = lastInvitationToken;
+    }
+
+    @When("I join the group without authentication")
+    public void iJoinTheGroupWithoutAuthentication() {
+        scenarioContext.setResponse(restTemplate.exchange(
+                baseUrl() + "/groups/" + currentGroupId + "/join", HttpMethod.POST,
+                unauthenticatedEntity(null), Map.class));
+    }
+
+    @When("I create an invitation for the group without authentication")
+    public void iCreateAnInvitationForTheGroupWithoutAuthentication() {
+        scenarioContext.setResponse(restTemplate.exchange(
+                baseUrl() + "/groups/" + currentGroupId + "/invitations", HttpMethod.POST,
+                unauthenticatedEntity(null), Map.class));
+    }
+
+    @When("I join the group by invitation without authentication")
+    public void iJoinTheGroupByInvitationWithoutAuthentication() {
+        JoinByInvitationRequest request = new JoinByInvitationRequest("dummy-token");
+        scenarioContext.setResponse(restTemplate.exchange(
+                baseUrl() + "/groups/" + currentGroupId + "/join-by-invitation", HttpMethod.POST,
+                unauthenticatedEntity(request), Map.class));
+    }
+
+    @And("another user has created a group named {string} with join policy {string} and created an invitation and archived it")
+    public void anotherUserHasCreatedAGroupWithJoinPolicyAndCreatedInvitationAndArchivedIt(String name, String joinPolicy) {
+        String otherToken = registerAndLoginOtherUser();
+        lastOtherUserToken = otherToken;
+        CreateGroupRequest request = new CreateGroupRequest(name, null, JoinPolicy.valueOf(joinPolicy));
+        var response = restTemplate.exchange(
+                baseUrl() + "/groups", HttpMethod.POST,
+                entityWithToken(request, otherToken), Map.class);
+        currentGroupId = UUID.fromString((String) response.getBody().get("id"));
+        var invResponse = restTemplate.exchange(
+                baseUrl() + "/groups/" + currentGroupId + "/invitations", HttpMethod.POST,
+                entityWithToken(null, otherToken), Map.class);
+        lastInvitationToken = (String) invResponse.getBody().get("token");
+        pendingInvitationToken = lastInvitationToken;
+        restTemplate.exchange(
+                baseUrl() + "/groups/" + currentGroupId + "/archive", HttpMethod.POST,
+                entityWithToken(null, otherToken), Map.class);
+    }
+
+    @When("I join the group")
+    public void iJoinTheGroup() {
+        scenarioContext.setResponse(restTemplate.exchange(
+                baseUrl() + "/groups/" + currentGroupId + "/join", HttpMethod.POST,
+                authorizedEntity(null), Map.class));
+    }
+
+    @When("I create an invitation for the group")
+    public void iCreateAnInvitationForTheGroup() {
+        scenarioContext.setResponse(restTemplate.exchange(
+                baseUrl() + "/groups/" + currentGroupId + "/invitations", HttpMethod.POST,
+                authorizedEntity(null), Map.class));
+        Map body = scenarioContext.getResponse().getBody();
+        if (body != null && body.containsKey("token")) {
+            lastInvitationToken = (String) body.get("token");
+        }
+    }
+
+    @When("I create an invitation with expiration {string}")
+    public void iCreateAnInvitationWithExpiration(String expiresAt) {
+        CreateGroupInvitationRequest request = new CreateGroupInvitationRequest(Instant.parse(expiresAt));
+        scenarioContext.setResponse(restTemplate.exchange(
+                baseUrl() + "/groups/" + currentGroupId + "/invitations", HttpMethod.POST,
+                authorizedEntity(request), Map.class));
+        Map body = scenarioContext.getResponse().getBody();
+        if (body != null && body.containsKey("token")) {
+            lastInvitationToken = (String) body.get("token");
+        }
+    }
+
+    @When("I join the group by invitation")
+    public void iJoinTheGroupByInvitation() {
+        JoinByInvitationRequest request = new JoinByInvitationRequest(pendingInvitationToken);
+        scenarioContext.setResponse(restTemplate.exchange(
+                baseUrl() + "/groups/" + currentGroupId + "/join-by-invitation", HttpMethod.POST,
+                authorizedEntity(request), Map.class));
+    }
+
+    @When("I join the group with token {string}")
+    public void iJoinTheGroupWithToken(String token) {
+        JoinByInvitationRequest request = new JoinByInvitationRequest(token);
+        scenarioContext.setResponse(restTemplate.exchange(
+                baseUrl() + "/groups/" + currentGroupId + "/join-by-invitation", HttpMethod.POST,
+                authorizedEntity(request), Map.class));
+    }
+
+    @Then("I am now a member of the group")
+    public void iAmNowAMemberOfTheGroup() {
+        assertThat(scenarioContext.getResponse().getBody().get("role")).isEqualTo("MEMBER");
+    }
+
+    @Then("the invitation has a token")
+    public void theInvitationHasAToken() {
+        assertThat(scenarioContext.getResponse().getBody().get("token")).isNotNull().isInstanceOf(String.class);
+    }
+
+    @And("the invitation expiry is null")
+    public void theInvitationExpiryIsNull() {
+        assertThat(scenarioContext.getResponse().getBody()).containsKey("expiresAt");
+        assertThat(scenarioContext.getResponse().getBody().get("expiresAt")).isNull();
     }
 
     // ── Helpers ─────────────────────────────────────────────────────────────

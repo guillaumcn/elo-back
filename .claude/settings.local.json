@@ -52,7 +52,10 @@
       "mcp__trello__get_card_comments",
       "Bash(./mvnw package:*)",
       "Bash(./mvnw clean:*)",
-      "Bash(docker compose:*)"
+      "Bash(docker compose:*)",
+      "Bash(git -C /home/guillaume/elo/backend diff HEAD --name-only)",
+      "Bash(git -C /home/guillaume/elo/backend ls-files --others --exclude-standard)",
+      "Bash(git -C /home/guillaume/elo/backend diff HEAD -- src/main/java/com/elo/infrastructure/adapter/out/persistence/group/GroupPersistenceMapper.java)"
     ]
   }
 }

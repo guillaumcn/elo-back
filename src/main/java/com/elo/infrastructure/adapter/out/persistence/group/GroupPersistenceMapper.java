@@ -1,6 +1,7 @@
 package com.elo.infrastructure.adapter.out.persistence.group;
 
 import com.elo.domain.group.model.Group;
+import com.elo.domain.group.model.GroupInvitation;
 import com.elo.domain.group.model.GroupMember;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
@@ -52,6 +53,28 @@ public class GroupPersistenceMapper {
                 .userId(entity.getUserId())
                 .role(entity.getRole())
                 .joinedAt(entity.getJoinedAt())
+                .build();
+    }
+
+    public static GroupInvitationJpaEntity toJpaEntity(GroupInvitation invitation) {
+        return GroupInvitationJpaEntity.builder()
+                .id(invitation.getId())
+                .groupId(invitation.getGroupId())
+                .token(invitation.getToken())
+                .invitedBy(invitation.getInvitedBy())
+                .createdAt(invitation.getCreatedAt())
+                .expiresAt(invitation.getExpiresAt())
+                .build();
+    }
+
+    public static GroupInvitation toDomain(GroupInvitationJpaEntity entity) {
+        return GroupInvitation.builder()
+                .id(entity.getId())
+                .groupId(entity.getGroupId())
+                .token(entity.getToken())
+                .invitedBy(entity.getInvitedBy())
+                .createdAt(entity.getCreatedAt())
+                .expiresAt(entity.getExpiresAt())
                 .build();
     }
 }

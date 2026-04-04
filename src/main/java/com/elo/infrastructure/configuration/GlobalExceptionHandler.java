@@ -2,6 +2,10 @@ package com.elo.infrastructure.configuration;
 
 import com.elo.domain.group.exception.GroupAccessDeniedException;
 import com.elo.domain.group.exception.GroupAlreadyArchivedException;
+import com.elo.domain.group.exception.GroupAlreadyMemberException;
+import com.elo.domain.group.exception.GroupInvitationExpiredException;
+import com.elo.domain.group.exception.GroupInvitationNotFoundException;
+import com.elo.domain.group.exception.GroupJoinPolicyViolationException;
 import com.elo.domain.group.exception.GroupNotArchivedException;
 import com.elo.domain.group.exception.GroupNotFoundException;
 import com.elo.domain.group.exception.InvalidGroupException;
@@ -88,6 +92,30 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(GroupNotArchivedException.class)
     @ResponseStatus(HttpStatus.UNPROCESSABLE_ENTITY)
     public ErrorResponse handleGroupNotArchived(GroupNotArchivedException ex) {
+        return ErrorResponse.of(422, "UNPROCESSABLE_ENTITY", ex.getMessage());
+    }
+
+    @ExceptionHandler(GroupAlreadyMemberException.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public ErrorResponse handleGroupAlreadyMember(GroupAlreadyMemberException ex) {
+        return ErrorResponse.of(409, "CONFLICT", ex.getMessage());
+    }
+
+    @ExceptionHandler(GroupJoinPolicyViolationException.class)
+    @ResponseStatus(HttpStatus.UNPROCESSABLE_ENTITY)
+    public ErrorResponse handleGroupJoinPolicyViolation(GroupJoinPolicyViolationException ex) {
+        return ErrorResponse.of(422, "UNPROCESSABLE_ENTITY", ex.getMessage());
+    }
+
+    @ExceptionHandler(GroupInvitationNotFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public ErrorResponse handleGroupInvitationNotFound(GroupInvitationNotFoundException ex) {
+        return ErrorResponse.of(404, "NOT_FOUND", ex.getMessage());
+    }
+
+    @ExceptionHandler(GroupInvitationExpiredException.class)
+    @ResponseStatus(HttpStatus.UNPROCESSABLE_ENTITY)
+    public ErrorResponse handleGroupInvitationExpired(GroupInvitationExpiredException ex) {
         return ErrorResponse.of(422, "UNPROCESSABLE_ENTITY", ex.getMessage());
     }
 

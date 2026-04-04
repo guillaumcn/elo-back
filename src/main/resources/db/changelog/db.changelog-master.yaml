@@ -11,3 +11,5 @@ databaseChangeLog:
       file: db/changelog/group/002-create-group-members-table.yaml
   - include:
       file: db/changelog/group/003-constrain-description-column.yaml
+  - include:
+      file: db/changelog/group/004-create-group-invitations-table.yaml

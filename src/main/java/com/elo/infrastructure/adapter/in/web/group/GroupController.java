@@ -2,17 +2,29 @@ package com.elo.infrastructure.adapter.in.web.group;
 
 import com.elo.application.group.command.ArchiveGroupCommand;
 import com.elo.application.group.command.GetGroupCommand;
+import com.elo.application.group.command.JoinGroupCommand;
 import com.elo.application.group.command.UnarchiveGroupCommand;
+import com.elo.application.group.dto.CreateGroupInvitationRequest;
 import com.elo.application.group.dto.CreateGroupRequest;
+import com.elo.application.group.dto.GroupInvitationResponse;
+import com.elo.application.group.dto.GroupMemberResponse;
 import com.elo.application.group.dto.GroupResponse;
+import com.elo.application.group.dto.JoinByInvitationRequest;
 import com.elo.application.group.dto.UpdateGroupRequest;
 import com.elo.application.group.port.in.ArchiveGroupPort;
+import com.elo.application.group.port.in.CreateGroupInvitationPort;
 import com.elo.application.group.port.in.CreateGroupPort;
 import com.elo.application.group.port.in.GetGroupPort;
+import com.elo.application.group.port.in.JoinGroupByInvitationPort;
+import com.elo.application.group.port.in.JoinGroupPort;
 import com.elo.application.group.port.in.ListGroupsPort;
 import com.elo.application.group.port.in.UnarchiveGroupPort;
 import com.elo.application.group.port.in.UpdateGroupPort;
 import com.elo.domain.group.model.Group;
+import com.elo.domain.group.model.GroupInvitation;
+import com.elo.domain.group.model.GroupMember;
+import com.elo.infrastructure.adapter.in.web.group.mapper.GroupInvitationResponseMapper;
+import com.elo.infrastructure.adapter.in.web.group.mapper.GroupMemberResponseMapper;
 import com.elo.infrastructure.adapter.in.web.group.mapper.GroupResponseMapper;
 import com.elo.infrastructure.configuration.ErrorResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -51,6 +63,9 @@ public class GroupController {
     private final ListGroupsPort listGroupsPort;
     private final ArchiveGroupPort archiveGroupPort;
     private final UnarchiveGroupPort unarchiveGroupPort;
+    private final JoinGroupPort joinGroupPort;
+    private final CreateGroupInvitationPort createGroupInvitationPort;
+    private final JoinGroupByInvitationPort joinGroupByInvitationPort;
 
     @Operation(summary = "Create a group")
     @ApiResponse(responseCode = "201", description = "Group created successfully")
@@ -145,5 +160,61 @@ public class GroupController {
         UUID userId = (UUID) authentication.getPrincipal();
         Group group = updateGroupPort.execute(request.toCommand(groupId, userId));
         return GroupResponseMapper.toResponse(group);
+    }
+
+    @Operation(summary = "Join an open group")
+    @ApiResponse(responseCode = "200", description = "Joined group successfully")
+    @ApiResponse(responseCode = "401", description = "Unauthorized",
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    @ApiResponse(responseCode = "404", description = "Group not found",
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    @ApiResponse(responseCode = "409", description = "Already a member",
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    @ApiResponse(responseCode = "422", description = "Group is not open or is archived",
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    @PostMapping("/{groupId}/join")
+    @ResponseStatus(HttpStatus.OK)
+    public GroupMemberResponse joinGroup(@PathVariable UUID groupId, Authentication authentication) {
+        UUID userId = (UUID) authentication.getPrincipal();
+        GroupMember member = joinGroupPort.execute(new JoinGroupCommand(groupId, userId));
+        return GroupMemberResponseMapper.toResponse(member);
+    }
+
+    @Operation(summary = "Create a group invitation")
+    @ApiResponse(responseCode = "201", description = "Invitation created successfully")
+    @ApiResponse(responseCode = "401", description = "Unauthorized",
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    @ApiResponse(responseCode = "404", description = "Group not found or not a member",
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    @PostMapping("/{groupId}/invitations")
+    @ResponseStatus(HttpStatus.CREATED)
+    public GroupInvitationResponse createInvitation(@PathVariable UUID groupId,
+                                                     @Valid @RequestBody CreateGroupInvitationRequest request,
+                                                     Authentication authentication) {
+        UUID userId = (UUID) authentication.getPrincipal();
+        GroupInvitation invitation = createGroupInvitationPort.execute(request.toCommand(groupId, userId));
+        return GroupInvitationResponseMapper.toResponse(invitation);
+    }
+
+    @Operation(summary = "Join a group by invitation token")
+    @ApiResponse(responseCode = "200", description = "Joined group successfully")
+    @ApiResponse(responseCode = "400", description = "Validation error",
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    @ApiResponse(responseCode = "401", description = "Unauthorized",
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    @ApiResponse(responseCode = "404", description = "Invitation not found",
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    @ApiResponse(responseCode = "409", description = "Already a member",
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    @ApiResponse(responseCode = "422", description = "Invitation expired or group is archived",
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    @PostMapping("/{groupId}/join-by-invitation")
+    @ResponseStatus(HttpStatus.OK)
+    public GroupMemberResponse joinGroupByInvitation(@PathVariable UUID groupId,
+                                                      @Valid @RequestBody JoinByInvitationRequest request,
+                                                      Authentication authentication) {
+        UUID userId = (UUID) authentication.getPrincipal();
+        GroupMember member = joinGroupByInvitationPort.execute(request.toCommand(groupId, userId));
+        return GroupMemberResponseMapper.toResponse(member);
     }
 }

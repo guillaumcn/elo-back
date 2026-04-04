@@ -1,16 +1,23 @@
 package com.elo.infrastructure.configuration;
 
 import com.elo.application.group.port.in.ArchiveGroupPort;
+import com.elo.application.group.port.in.CreateGroupInvitationPort;
 import com.elo.application.group.port.in.CreateGroupPort;
 import com.elo.application.group.port.in.GetGroupPort;
+import com.elo.application.group.port.in.JoinGroupByInvitationPort;
+import com.elo.application.group.port.in.JoinGroupPort;
 import com.elo.application.group.port.in.ListGroupsPort;
 import com.elo.application.group.port.in.UnarchiveGroupPort;
 import com.elo.application.group.port.in.UpdateGroupPort;
+import com.elo.application.group.port.out.GroupInvitationRepositoryPort;
 import com.elo.application.group.port.out.GroupMemberRepositoryPort;
 import com.elo.application.group.port.out.GroupRepositoryPort;
 import com.elo.application.group.usecase.ArchiveGroupUseCase;
+import com.elo.application.group.usecase.CreateGroupInvitationUseCase;
 import com.elo.application.group.usecase.CreateGroupUseCase;
 import com.elo.application.group.usecase.GetGroupUseCase;
+import com.elo.application.group.usecase.JoinGroupByInvitationUseCase;
+import com.elo.application.group.usecase.JoinGroupUseCase;
 import com.elo.application.group.usecase.ListGroupsUseCase;
 import com.elo.application.group.usecase.UnarchiveGroupUseCase;
 import com.elo.application.group.usecase.UpdateGroupUseCase;
@@ -53,5 +60,25 @@ public class GroupBeanConfiguration {
     public UnarchiveGroupPort unarchiveGroupPort(GroupRepositoryPort groupRepositoryPort,
                                                  GroupMemberRepositoryPort groupMemberRepositoryPort) {
         return new UnarchiveGroupUseCase(groupRepositoryPort, groupMemberRepositoryPort);
+    }
+
+    @Bean
+    public JoinGroupPort joinGroupPort(GroupRepositoryPort groupRepositoryPort,
+                                       GroupMemberRepositoryPort groupMemberRepositoryPort) {
+        return new JoinGroupUseCase(groupRepositoryPort, groupMemberRepositoryPort);
+    }
+
+    @Bean
+    public CreateGroupInvitationPort createGroupInvitationPort(GroupRepositoryPort groupRepositoryPort,
+                                                                GroupMemberRepositoryPort groupMemberRepositoryPort,
+                                                                GroupInvitationRepositoryPort groupInvitationRepositoryPort) {
+        return new CreateGroupInvitationUseCase(groupRepositoryPort, groupMemberRepositoryPort, groupInvitationRepositoryPort);
+    }
+
+    @Bean
+    public JoinGroupByInvitationPort joinGroupByInvitationPort(GroupRepositoryPort groupRepositoryPort,
+                                                                GroupMemberRepositoryPort groupMemberRepositoryPort,
+                                                                GroupInvitationRepositoryPort groupInvitationRepositoryPort) {
+        return new JoinGroupByInvitationUseCase(groupRepositoryPort, groupMemberRepositoryPort, groupInvitationRepositoryPort);
     }
 }

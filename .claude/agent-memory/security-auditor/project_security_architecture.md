@@ -26,7 +26,7 @@ type: project
 
 ## Active Bounded Contexts
 - Identity: full CRUD (register, login, get profile, update profile, delete account, get public profile)
-- Group: create, list, get, update, archive, unarchive — no delete yet
+- Group: create, list, get, update, archive, unarchive, join (open), create invitation, join by invitation
 
 ## Group Archive/Unarchive Authorization Pattern (April 2026)
 - Both ArchiveGroupUseCase and UnarchiveGroupUseCase enforce ADMIN role check via `GroupMemberRepositoryPort.existsByGroupIdAndUserIdAndRole()`
@@ -50,6 +50,14 @@ type: project
 
 ## Swagger / API Docs
 - Enabled by default; disabled in `application-prod.yml` via `springdoc.api-docs.enabled: false` and `springdoc.swagger-ui.enabled: false`
+
+## Group Invitation Feature Security (April 2026 audit)
+- Invitation token generated via `UUID.randomUUID().toString()` — 122 bits entropy, acceptable but not CSPRNG-class
+- CRITICAL: `JoinGroupByInvitationUseCase` fetches invitation by token but never checks `invitation.getGroupId().equals(command.groupId())` — token from group A can be used to join group B
+- `expiresAt` is nullable (perpetual invitations allowed by design) — `isExpired()` returns false when null, which is the intended behavior
+- CreateGroupInvitationUseCase only checks membership, NOT admin role — any member can create an invitation (design choice, but undocumented in Swagger)
+- `GroupInvitationResponse` exposes the raw token in the response body — this is intentional (caller needs to share it), but tokens are never invalidated after first use (single-use not implemented)
+- `joinGroup` (open join) and `joinGroupByInvitation` controller methods are missing `@ResponseStatus(HttpStatus.OK)` — defaults to 200, which is correct but implicit
 
 **Why:** Recorded to preserve institutional knowledge across audit sessions.
 **How to apply:** Use as baseline for future incremental audits — focus on delta since this snapshot.
