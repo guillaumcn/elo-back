@@ -49,7 +49,10 @@
       "Bash(xargs ls:*)",
       "mcp__trello__get_acceptance_criteria",
       "mcp__trello__get_checklist_by_name",
-      "mcp__trello__get_card_comments"
+      "mcp__trello__get_card_comments",
+      "Bash(./mvnw package:*)",
+      "Bash(./mvnw clean:*)",
+      "Bash(docker compose:*)"
     ]
   }
 }

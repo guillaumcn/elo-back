@@ -26,7 +26,14 @@ type: project
 
 ## Active Bounded Contexts
 - Identity: full CRUD (register, login, get profile, update profile, delete account, get public profile)
-- Group: create, list, get, update — no delete yet
+- Group: create, list, get, update, archive, unarchive — no delete yet
+
+## Group Archive/Unarchive Authorization Pattern (April 2026)
+- Both ArchiveGroupUseCase and UnarchiveGroupUseCase enforce ADMIN role check via `GroupMemberRepositoryPort.existsByGroupIdAndUserIdAndRole()`
+- IDOR-safe: non-members get 404, members without ADMIN role get 403 — confirms existing UpdateGroupUseCase pattern
+- Group state transitions enforced at domain level: `group.archive()` / `group.unarchive()` throw `GroupAlreadyArchivedException` / `GroupNotArchivedException` → 422
+- Controller endpoints use `@PostMapping` for archive/unarchive (state-mutating actions), which is correct
+- `archiveGroup` and `unarchiveGroup` controller methods intentionally omit `@ResponseStatus` (defaults to 200 OK), consistent with `updateGroup`
 
 ## Known Stub / Temporary Implementations
 - `AlwaysVisibleUserVisibilityAdapter`: always returns `true`, guarded with `@Profile("!prod")` — not active in production

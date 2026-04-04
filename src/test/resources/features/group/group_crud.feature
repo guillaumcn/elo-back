@@ -134,3 +134,39 @@ Feature: Group CRUD
     And an update group request with name ""
     When I submit the update group request
     Then I receive a 400 Bad Request response
+
+  Scenario: Update group without authentication
+    Given a non-existent group id
+    And an update group request with name "New Name"
+    When I submit the update group request without authentication
+    Then I receive a 401 Unauthorized response
+
+  Scenario: Update non-existent group
+    Given I am authenticated as "alice"
+    And a non-existent group id
+    And an update group request with name "New Name"
+    When I submit the update group request
+    Then I receive a 404 Not Found response
+
+  Scenario: Update group name that is too long
+    Given I am authenticated as "alice"
+    And I have created a group named "My Group" with join policy "OPEN"
+    And an update group request with name "Group name exceeding the max length limit of one hundred characters by having extra content here abcde"
+    When I submit the update group request
+    Then I receive a 400 Bad Request response
+
+  Scenario: List groups I belong to as a member
+    Given I am authenticated as "alice"
+    And another user has created a group named "Their Club" with join policy "OPEN" and added me as a member
+    When I request my groups
+    Then I receive a 200 OK response
+    And the group list contains "Their Club"
+
+  Scenario: Update an archived group
+    Given I am authenticated as "alice"
+    And I have created a group named "My Group" with join policy "OPEN"
+    And I have archived the group
+    And an update group request with name "Updated Name"
+    When I submit the update group request
+    Then I receive a 200 OK response
+    And the group name is "Updated Name"

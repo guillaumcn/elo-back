@@ -1,6 +1,8 @@
 package com.elo.infrastructure.configuration;
 
 import com.elo.domain.group.exception.GroupAccessDeniedException;
+import com.elo.domain.group.exception.GroupAlreadyArchivedException;
+import com.elo.domain.group.exception.GroupNotArchivedException;
 import com.elo.domain.group.exception.GroupNotFoundException;
 import com.elo.domain.group.exception.InvalidGroupException;
 import com.elo.domain.identity.exception.EmailAlreadyTakenException;
@@ -75,6 +77,18 @@ public class GlobalExceptionHandler {
     @ResponseStatus(HttpStatus.FORBIDDEN)
     public ErrorResponse handleGroupAccessDenied(GroupAccessDeniedException ex) {
         return ErrorResponse.of(403, "FORBIDDEN", ex.getMessage());
+    }
+
+    @ExceptionHandler(GroupAlreadyArchivedException.class)
+    @ResponseStatus(HttpStatus.UNPROCESSABLE_ENTITY)
+    public ErrorResponse handleGroupAlreadyArchived(GroupAlreadyArchivedException ex) {
+        return ErrorResponse.of(422, "UNPROCESSABLE_ENTITY", ex.getMessage());
+    }
+
+    @ExceptionHandler(GroupNotArchivedException.class)
+    @ResponseStatus(HttpStatus.UNPROCESSABLE_ENTITY)
+    public ErrorResponse handleGroupNotArchived(GroupNotArchivedException ex) {
+        return ErrorResponse.of(422, "UNPROCESSABLE_ENTITY", ex.getMessage());
     }
 
     @ExceptionHandler(DataIntegrityViolationException.class)

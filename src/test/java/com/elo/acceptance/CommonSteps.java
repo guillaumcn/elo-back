@@ -84,6 +84,11 @@ public class CommonSteps {
         assertThat(scenarioContext.getResponse().getStatusCode().value()).isEqualTo(409);
     }
 
+    @Then("I receive a 422 Unprocessable Entity response")
+    public void iReceive422UnprocessableEntityResponse() {
+        assertThat(scenarioContext.getResponse().getStatusCode().value()).isEqualTo(422);
+    }
+
     // ── Shared response assertion steps ─────────────────────────────────────
 
     @And("the response contains a valid JWT token")

@@ -50,6 +50,7 @@ public class GroupSteps {
     private JoinPolicy pendingUpdateJoinPolicy;
 
     private UUID currentGroupId;
+    private String lastOtherUserToken;
 
     private String baseUrl() {
         return "http://localhost:" + port + "/api/v1";
@@ -114,6 +115,28 @@ public class GroupSteps {
                 authorizedEntity(request), Map.class));
     }
 
+    @When("I submit the update group request without authentication")
+    public void iSubmitTheUpdateGroupRequestWithoutAuthentication() {
+        UpdateGroupRequest request = new UpdateGroupRequest(pendingUpdateName, pendingUpdateDescription, pendingUpdateJoinPolicy);
+        scenarioContext.setResponse(restTemplate.exchange(
+                baseUrl() + "/groups/" + currentGroupId, HttpMethod.PUT,
+                unauthenticatedEntity(request), Map.class));
+    }
+
+    @When("I archive the group without authentication")
+    public void iArchiveTheGroupWithoutAuthentication() {
+        scenarioContext.setResponse(restTemplate.exchange(
+                baseUrl() + "/groups/" + currentGroupId + "/archive", HttpMethod.POST,
+                unauthenticatedEntity(null), Map.class));
+    }
+
+    @When("I unarchive the group without authentication")
+    public void iUnarchiveTheGroupWithoutAuthentication() {
+        scenarioContext.setResponse(restTemplate.exchange(
+                baseUrl() + "/groups/" + currentGroupId + "/unarchive", HttpMethod.POST,
+                unauthenticatedEntity(null), Map.class));
+    }
+
     @When("I submit the create group request without authentication")
     public void iSubmitTheCreateGroupRequestWithoutAuthentication() {
         CreateGroupRequest request = new CreateGroupRequest(pendingName, pendingDescription, pendingJoinPolicy);
@@ -172,6 +195,7 @@ public class GroupSteps {
     @And("another user has created a group named {string} with join policy {string} and added me as a member")
     public void anotherUserHasCreatedAGroupAndAddedMeAsMember(String name, String joinPolicy) {
         String otherToken = registerAndLoginOtherUser();
+        lastOtherUserToken = otherToken;
         CreateGroupRequest request = new CreateGroupRequest(name, null, JoinPolicy.valueOf(joinPolicy));
         var response = restTemplate.exchange(
                 baseUrl() + "/groups", HttpMethod.POST,
@@ -245,6 +269,46 @@ public class GroupSteps {
     @And("the group description is {string}")
     public void theGroupDescriptionIs(String expectedDescription) {
         assertThat(scenarioContext.getResponse().getBody().get("description")).isEqualTo(expectedDescription);
+    }
+
+    // ── Archive / Unarchive steps ────────────────────────────────────────────
+
+    @When("I archive the group")
+    public void iArchiveTheGroup() {
+        scenarioContext.setResponse(restTemplate.exchange(
+                baseUrl() + "/groups/" + currentGroupId + "/archive", HttpMethod.POST,
+                authorizedEntity(null), Map.class));
+    }
+
+    @When("I unarchive the group")
+    public void iUnarchiveTheGroup() {
+        scenarioContext.setResponse(restTemplate.exchange(
+                baseUrl() + "/groups/" + currentGroupId + "/unarchive", HttpMethod.POST,
+                authorizedEntity(null), Map.class));
+    }
+
+    @And("I have archived the group")
+    public void iHaveArchivedTheGroup() {
+        restTemplate.exchange(
+                baseUrl() + "/groups/" + currentGroupId + "/archive", HttpMethod.POST,
+                authorizedEntity(null), Map.class);
+    }
+
+    @And("an admin has archived the group")
+    public void anAdminHasArchivedTheGroup() {
+        restTemplate.exchange(
+                baseUrl() + "/groups/" + currentGroupId + "/archive", HttpMethod.POST,
+                entityWithToken(null, lastOtherUserToken), Map.class);
+    }
+
+    @And("the group is archived")
+    public void theGroupIsArchived() {
+        assertThat(scenarioContext.getResponse().getBody().get("archived")).isEqualTo(true);
+    }
+
+    @And("the group is not archived")
+    public void theGroupIsNotArchived() {
+        assertThat(scenarioContext.getResponse().getBody().get("archived")).isEqualTo(false);
     }
 
     // ── Helpers ─────────────────────────────────────────────────────────────

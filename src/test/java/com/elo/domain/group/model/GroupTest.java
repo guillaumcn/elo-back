@@ -1,5 +1,7 @@
 package com.elo.domain.group.model;
 
+import com.elo.domain.group.exception.GroupAlreadyArchivedException;
+import com.elo.domain.group.exception.GroupNotArchivedException;
 import com.elo.domain.group.exception.InvalidGroupException;
 import org.junit.jupiter.api.Test;
 
@@ -131,5 +133,60 @@ class GroupTest {
         assertThatThrownBy(() -> group.update(null, tooLong, null))
                 .isInstanceOf(InvalidGroupException.class)
                 .hasMessageContaining("1000 characters");
+    }
+
+    @Test
+    void shouldArchiveGroup() {
+        Group group = Group.create("My Group", null, JoinPolicy.OPEN, creatorId);
+        group.archive();
+
+        assertThat(group.isArchived()).isTrue();
+    }
+
+    @Test
+    void shouldUpdateUpdatedAtOnArchive() throws InterruptedException {
+        Group group = Group.create("My Group", null, JoinPolicy.OPEN, creatorId);
+        var originalUpdatedAt = group.getUpdatedAt();
+        Thread.sleep(1);
+        group.archive();
+
+        assertThat(group.getUpdatedAt()).isAfter(originalUpdatedAt);
+    }
+
+    @Test
+    void shouldThrowWhenArchivingAlreadyArchivedGroup() {
+        Group group = Group.create("My Group", null, JoinPolicy.OPEN, creatorId);
+        group.archive();
+
+        assertThatThrownBy(group::archive)
+                .isInstanceOf(GroupAlreadyArchivedException.class);
+    }
+
+    @Test
+    void shouldUnarchiveGroup() {
+        Group group = Group.create("My Group", null, JoinPolicy.OPEN, creatorId);
+        group.archive();
+        group.unarchive();
+
+        assertThat(group.isArchived()).isFalse();
+    }
+
+    @Test
+    void shouldUpdateUpdatedAtOnUnarchive() throws InterruptedException {
+        Group group = Group.create("My Group", null, JoinPolicy.OPEN, creatorId);
+        group.archive();
+        var archivedAt = group.getUpdatedAt();
+        Thread.sleep(1);
+        group.unarchive();
+
+        assertThat(group.getUpdatedAt()).isAfter(archivedAt);
+    }
+
+    @Test
+    void shouldThrowWhenUnarchivingNonArchivedGroup() {
+        Group group = Group.create("My Group", null, JoinPolicy.OPEN, creatorId);
+
+        assertThatThrownBy(group::unarchive)
+                .isInstanceOf(GroupNotArchivedException.class);
     }
 }

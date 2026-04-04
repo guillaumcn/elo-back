@@ -1,5 +1,7 @@
 package com.elo.domain.group.model;
 
+import com.elo.domain.group.exception.GroupAlreadyArchivedException;
+import com.elo.domain.group.exception.GroupNotArchivedException;
 import com.elo.domain.group.exception.InvalidGroupException;
 import lombok.Builder;
 import lombok.Getter;
@@ -69,6 +71,18 @@ public class Group {
             this.description = description;
         }
         if (joinPolicy != null) this.joinPolicy = joinPolicy;
+        this.updatedAt = Instant.now();
+    }
+
+    public void archive() {
+        if (this.archived) throw new GroupAlreadyArchivedException();
+        this.archived = true;
+        this.updatedAt = Instant.now();
+    }
+
+    public void unarchive() {
+        if (!this.archived) throw new GroupNotArchivedException();
+        this.archived = false;
         this.updatedAt = Instant.now();
     }
 
