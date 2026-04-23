@@ -1,6 +1,7 @@
 package com.elo.acceptance;
 
 import com.elo.infrastructure.adapter.out.persistence.group.GroupInvitationJpaRepository;
+import com.elo.infrastructure.adapter.out.persistence.group.GroupJoinRequestJpaRepository;
 import com.elo.infrastructure.adapter.out.persistence.group.GroupMemberJpaRepository;
 import com.elo.infrastructure.adapter.out.persistence.group.GroupJpaRepository;
 import com.elo.infrastructure.adapter.out.persistence.identity.UserJpaRepository;
@@ -11,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 public class CucumberHooks {
 
     private final GroupInvitationJpaRepository groupInvitationJpaRepository;
+    private final GroupJoinRequestJpaRepository groupJoinRequestJpaRepository;
     private final GroupMemberJpaRepository groupMemberJpaRepository;
     private final GroupJpaRepository groupJpaRepository;
     private final UserJpaRepository userJpaRepository;
@@ -18,6 +20,7 @@ public class CucumberHooks {
     @Before
     public void cleanDatabase() {
         groupInvitationJpaRepository.deleteAll();
+        groupJoinRequestJpaRepository.deleteAll();
         groupMemberJpaRepository.deleteAll();
         groupJpaRepository.deleteAll();
         userJpaRepository.deleteAll();

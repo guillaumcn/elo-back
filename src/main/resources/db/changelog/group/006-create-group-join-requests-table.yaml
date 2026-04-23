@@ -1,0 +1,44 @@
+databaseChangeLog:
+  - changeSet:
+      id: 006-create-group-join-requests-table
+      author: guillaume
+      changes:
+        - createTable:
+            tableName: group_join_requests
+            columns:
+              - column:
+                  name: id
+                  type: UUID
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: group_id
+                  type: UUID
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_join_request_group
+                    references: groups(id)
+              - column:
+                  name: user_id
+                  type: UUID
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_join_request_user
+                    references: users(id)
+              - column:
+                  name: status
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: requested_at
+                  type: TIMESTAMPTZ
+                  constraints:
+                    nullable: false
+              - column:
+                  name: resolved_by
+                  type: UUID
+              - column:
+                  name: resolved_at
+                  type: TIMESTAMPTZ

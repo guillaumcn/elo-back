@@ -15,3 +15,5 @@ databaseChangeLog:
       file: db/changelog/group/004-create-group-invitations-table.yaml
   - include:
       file: db/changelog/group/005-add-group-members-user-id-index.yaml
+  - include:
+      file: db/changelog/group/006-create-group-join-requests-table.yaml

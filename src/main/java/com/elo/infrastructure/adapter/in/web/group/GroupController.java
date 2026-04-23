@@ -3,28 +3,37 @@ package com.elo.infrastructure.adapter.in.web.group;
 import com.elo.application.group.command.ArchiveGroupCommand;
 import com.elo.application.group.command.GetGroupCommand;
 import com.elo.application.group.command.JoinGroupCommand;
+import com.elo.application.group.command.ListJoinRequestsCommand;
+import com.elo.application.group.command.SubmitJoinRequestCommand;
 import com.elo.application.group.command.UnarchiveGroupCommand;
 import com.elo.application.group.dto.CreateGroupInvitationRequest;
 import com.elo.application.group.dto.CreateGroupRequest;
 import com.elo.application.group.dto.GroupInvitationResponse;
+import com.elo.application.group.dto.GroupJoinRequestResponse;
 import com.elo.application.group.dto.GroupMemberResponse;
 import com.elo.application.group.dto.GroupResponse;
+import com.elo.application.group.dto.HandleJoinRequestRequest;
 import com.elo.application.group.dto.JoinByInvitationRequest;
 import com.elo.application.group.dto.UpdateGroupRequest;
 import com.elo.application.group.port.in.ArchiveGroupPort;
 import com.elo.application.group.port.in.CreateGroupInvitationPort;
 import com.elo.application.group.port.in.CreateGroupPort;
 import com.elo.application.group.port.in.GetGroupPort;
+import com.elo.application.group.port.in.HandleJoinRequestPort;
 import com.elo.application.group.port.in.JoinGroupByInvitationPort;
 import com.elo.application.group.port.in.JoinGroupPort;
 import com.elo.application.group.port.in.ListGroupsPort;
+import com.elo.application.group.port.in.ListJoinRequestsPort;
+import com.elo.application.group.port.in.SubmitJoinRequestPort;
 import com.elo.application.group.port.in.UnarchiveGroupPort;
 import com.elo.application.group.port.in.UpdateGroupPort;
 import com.elo.application.shared.PagedResult;
 import com.elo.domain.group.model.Group;
 import com.elo.domain.group.model.GroupInvitation;
+import com.elo.domain.group.model.GroupJoinRequest;
 import com.elo.domain.group.model.GroupMember;
 import com.elo.infrastructure.adapter.in.web.group.mapper.GroupInvitationResponseMapper;
+import com.elo.infrastructure.adapter.in.web.group.mapper.GroupJoinRequestResponseMapper;
 import com.elo.infrastructure.adapter.in.web.group.mapper.GroupMemberResponseMapper;
 import com.elo.infrastructure.adapter.in.web.group.mapper.GroupResponseMapper;
 import com.elo.infrastructure.configuration.ErrorResponse;
@@ -68,6 +77,9 @@ public class GroupController {
     private final JoinGroupPort joinGroupPort;
     private final CreateGroupInvitationPort createGroupInvitationPort;
     private final JoinGroupByInvitationPort joinGroupByInvitationPort;
+    private final SubmitJoinRequestPort submitJoinRequestPort;
+    private final ListJoinRequestsPort listJoinRequestsPort;
+    private final HandleJoinRequestPort handleJoinRequestPort;
 
     @Operation(summary = "Create a group")
     @ApiResponse(responseCode = "201", description = "Group created successfully")
@@ -224,5 +236,66 @@ public class GroupController {
         UUID userId = (UUID) authentication.getPrincipal();
         GroupMember member = joinGroupByInvitationPort.execute(request.toCommand(groupId, userId));
         return GroupMemberResponseMapper.toResponse(member);
+    }
+
+    @Operation(summary = "Submit a join request")
+    @ApiResponse(responseCode = "201", description = "Join request submitted successfully")
+    @ApiResponse(responseCode = "401", description = "Unauthorized",
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    @ApiResponse(responseCode = "404", description = "Group not found",
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    @ApiResponse(responseCode = "409", description = "Already a member or duplicate pending request",
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    @ApiResponse(responseCode = "422", description = "Group is not REQUEST policy or is archived",
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    @PostMapping("/{groupId}/join-requests")
+    @ResponseStatus(HttpStatus.CREATED)
+    public GroupJoinRequestResponse submitJoinRequest(@PathVariable UUID groupId, Authentication authentication) {
+        UUID userId = (UUID) authentication.getPrincipal();
+        GroupJoinRequest joinRequest = submitJoinRequestPort.execute(new SubmitJoinRequestCommand(groupId, userId));
+        return GroupJoinRequestResponseMapper.toResponse(joinRequest);
+    }
+
+    @Operation(summary = "List join requests for a group")
+    @ApiResponse(responseCode = "200", description = "Join requests retrieved successfully")
+    @ApiResponse(responseCode = "401", description = "Unauthorized",
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    @ApiResponse(responseCode = "403", description = "Not an admin",
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    @ApiResponse(responseCode = "404", description = "Group not found",
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    @GetMapping("/{groupId}/join-requests")
+    public PagedResult<GroupJoinRequestResponse> listJoinRequests(@PathVariable UUID groupId,
+                                                                  @RequestParam(defaultValue = "0") int page,
+                                                                  @RequestParam(defaultValue = "20") int size,
+                                                                  Authentication authentication) {
+        UUID userId = (UUID) authentication.getPrincipal();
+        PagedResult<GroupJoinRequest> result = listJoinRequestsPort.execute(new ListJoinRequestsCommand(groupId, userId, page, size));
+        List<GroupJoinRequestResponse> content = result.content().stream()
+                .map(GroupJoinRequestResponseMapper::toResponse)
+                .toList();
+        return new PagedResult<>(content, result.page(), result.size(), result.totalElements(), result.totalPages());
+    }
+
+    @Operation(summary = "Approve or deny a join request")
+    @ApiResponse(responseCode = "200", description = "Join request handled successfully")
+    @ApiResponse(responseCode = "400", description = "Validation error",
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    @ApiResponse(responseCode = "401", description = "Unauthorized",
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    @ApiResponse(responseCode = "403", description = "Not an admin",
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    @ApiResponse(responseCode = "404", description = "Group or join request not found",
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    @ApiResponse(responseCode = "422", description = "Join request already resolved",
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    @PutMapping("/{groupId}/join-requests/{requestId}")
+    public GroupJoinRequestResponse handleJoinRequest(@PathVariable UUID groupId,
+                                                       @PathVariable UUID requestId,
+                                                       @Valid @RequestBody HandleJoinRequestRequest request,
+                                                       Authentication authentication) {
+        UUID adminId = (UUID) authentication.getPrincipal();
+        GroupJoinRequest joinRequest = handleJoinRequestPort.execute(request.toCommand(groupId, requestId, adminId));
+        return GroupJoinRequestResponseMapper.toResponse(joinRequest);
     }
 }

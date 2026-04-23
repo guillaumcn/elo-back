@@ -2,6 +2,7 @@ package com.elo.infrastructure.adapter.out.persistence.group;
 
 import com.elo.domain.group.model.Group;
 import com.elo.domain.group.model.GroupInvitation;
+import com.elo.domain.group.model.GroupJoinRequest;
 import com.elo.domain.group.model.GroupMember;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
@@ -84,6 +85,30 @@ public class GroupPersistenceMapper {
                 .invitedBy(entity.getInvitedBy())
                 .createdAt(entity.getCreatedAt())
                 .expiresAt(entity.getExpiresAt())
+                .build();
+    }
+
+    public static GroupJoinRequestJpaEntity toJpaEntity(GroupJoinRequest joinRequest) {
+        return GroupJoinRequestJpaEntity.builder()
+                .id(joinRequest.getId())
+                .groupId(joinRequest.getGroupId())
+                .userId(joinRequest.getUserId())
+                .status(joinRequest.getStatus())
+                .requestedAt(joinRequest.getRequestedAt())
+                .resolvedBy(joinRequest.getResolvedBy())
+                .resolvedAt(joinRequest.getResolvedAt())
+                .build();
+    }
+
+    public static GroupJoinRequest toDomain(GroupJoinRequestJpaEntity entity) {
+        return GroupJoinRequest.builder()
+                .id(entity.getId())
+                .groupId(entity.getGroupId())
+                .userId(entity.getUserId())
+                .status(entity.getStatus())
+                .requestedAt(entity.getRequestedAt())
+                .resolvedBy(entity.getResolvedBy())
+                .resolvedAt(entity.getResolvedAt())
                 .build();
     }
 }

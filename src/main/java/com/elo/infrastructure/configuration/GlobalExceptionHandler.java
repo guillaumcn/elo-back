@@ -6,6 +6,10 @@ import com.elo.domain.group.exception.GroupAlreadyMemberException;
 import com.elo.domain.group.exception.GroupInvitationExpiredException;
 import com.elo.domain.group.exception.GroupInvitationNotFoundException;
 import com.elo.domain.group.exception.GroupJoinPolicyViolationException;
+import com.elo.domain.group.exception.GroupJoinRequestAlreadyResolvedException;
+import com.elo.domain.group.exception.GroupJoinRequestDuplicateException;
+import com.elo.domain.group.exception.GroupJoinRequestMismatchException;
+import com.elo.domain.group.exception.GroupJoinRequestNotFoundException;
 import com.elo.domain.group.exception.GroupNotArchivedException;
 import com.elo.domain.group.exception.GroupNotFoundException;
 import com.elo.domain.group.exception.InvalidGroupException;
@@ -116,6 +120,30 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(GroupInvitationExpiredException.class)
     @ResponseStatus(HttpStatus.UNPROCESSABLE_ENTITY)
     public ErrorResponse handleGroupInvitationExpired(GroupInvitationExpiredException ex) {
+        return ErrorResponse.of(422, "UNPROCESSABLE_ENTITY", ex.getMessage());
+    }
+
+    @ExceptionHandler(GroupJoinRequestNotFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public ErrorResponse handleGroupJoinRequestNotFound(GroupJoinRequestNotFoundException ex) {
+        return ErrorResponse.of(404, "NOT_FOUND", ex.getMessage());
+    }
+
+    @ExceptionHandler(GroupJoinRequestDuplicateException.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public ErrorResponse handleGroupJoinRequestDuplicate(GroupJoinRequestDuplicateException ex) {
+        return ErrorResponse.of(409, "CONFLICT", ex.getMessage());
+    }
+
+    @ExceptionHandler(GroupJoinRequestAlreadyResolvedException.class)
+    @ResponseStatus(HttpStatus.UNPROCESSABLE_ENTITY)
+    public ErrorResponse handleGroupJoinRequestAlreadyResolved(GroupJoinRequestAlreadyResolvedException ex) {
+        return ErrorResponse.of(422, "UNPROCESSABLE_ENTITY", ex.getMessage());
+    }
+
+    @ExceptionHandler(GroupJoinRequestMismatchException.class)
+    @ResponseStatus(HttpStatus.UNPROCESSABLE_ENTITY)
+    public ErrorResponse handleGroupJoinRequestMismatch(GroupJoinRequestMismatchException ex) {
         return ErrorResponse.of(422, "UNPROCESSABLE_ENTITY", ex.getMessage());
     }
 

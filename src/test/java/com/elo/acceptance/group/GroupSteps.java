@@ -22,6 +22,7 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 
 import java.time.Instant;
 import java.util.List;
@@ -57,6 +58,9 @@ public class GroupSteps {
     private String lastInvitationToken;
     private String pendingInvitationToken;
     private String pendingInvitationExpiresAt;
+    private UUID lastJoinRequestId;
+    private UUID lastJoinRequestUserId;
+    private List<Map<String, Object>> lastJoinRequestsList;
 
     private String baseUrl() {
         return "http://localhost:" + port + "/api/v1";
@@ -488,6 +492,151 @@ public class GroupSteps {
     public void theInvitationExpiryIsNull() {
         assertThat(scenarioContext.getResponse().getBody()).containsKey("expiresAt");
         assertThat(scenarioContext.getResponse().getBody().get("expiresAt")).isNull();
+    }
+
+    // ── Join request steps ───────────────────────────────────────────────────
+
+    @When("I submit a join request for the group")
+    public void iSubmitAJoinRequestForTheGroup() {
+        scenarioContext.setResponse(restTemplate.exchange(
+                baseUrl() + "/groups/" + currentGroupId + "/join-requests", HttpMethod.POST,
+                authorizedEntity(null), Map.class));
+        Map body = scenarioContext.getResponse().getBody();
+        if (body != null && body.containsKey("id")) {
+            lastJoinRequestId = UUID.fromString((String) body.get("id"));
+        }
+    }
+
+    @And("I have submitted a join request for the group")
+    public void iHaveSubmittedAJoinRequestForTheGroup() {
+        var response = restTemplate.exchange(
+                baseUrl() + "/groups/" + currentGroupId + "/join-requests", HttpMethod.POST,
+                authorizedEntity(null), Map.class);
+        lastJoinRequestId = UUID.fromString((String) response.getBody().get("id"));
+    }
+
+    @And("another user has submitted a join request for the group")
+    public void anotherUserHasSubmittedAJoinRequestForTheGroup() {
+        String otherToken = registerAndLoginOtherUser();
+        lastOtherUserToken = otherToken;
+        var response = restTemplate.exchange(
+                baseUrl() + "/groups/" + currentGroupId + "/join-requests", HttpMethod.POST,
+                entityWithToken(null, otherToken), Map.class);
+        lastJoinRequestId = UUID.fromString((String) response.getBody().get("id"));
+        lastJoinRequestUserId = UUID.fromString((String) response.getBody().get("userId"));
+    }
+
+    @When("I approve the join request")
+    public void iApproveTheJoinRequest() {
+        Map<String, String> body = Map.of("action", "APPROVE");
+        scenarioContext.setResponse(restTemplate.exchange(
+                baseUrl() + "/groups/" + currentGroupId + "/join-requests/" + lastJoinRequestId, HttpMethod.PUT,
+                authorizedEntity(body), Map.class));
+    }
+
+    @When("I deny the join request")
+    public void iDenyTheJoinRequest() {
+        Map<String, String> body = Map.of("action", "DENY");
+        scenarioContext.setResponse(restTemplate.exchange(
+                baseUrl() + "/groups/" + currentGroupId + "/join-requests/" + lastJoinRequestId, HttpMethod.PUT,
+                authorizedEntity(body), Map.class));
+    }
+
+    @And("I have approved the join request")
+    public void iHaveApprovedTheJoinRequest() {
+        Map<String, String> body = Map.of("action", "APPROVE");
+        restTemplate.exchange(
+                baseUrl() + "/groups/" + currentGroupId + "/join-requests/" + lastJoinRequestId, HttpMethod.PUT,
+                authorizedEntity(body), Map.class);
+    }
+
+    @When("I list join requests for the group")
+    public void iListJoinRequestsForTheGroup() {
+        ResponseEntity<Map> raw = restTemplate.exchange(
+                baseUrl() + "/groups/" + currentGroupId + "/join-requests", HttpMethod.GET,
+                authorizedEntity(null), Map.class);
+        scenarioContext.setResponse(raw);
+        Map body = raw.getBody();
+        if (body != null && body.get("content") instanceof List<?>) {
+            lastJoinRequestsList = (List<Map<String, Object>>) body.get("content");
+        } else {
+            lastJoinRequestsList = null;
+        }
+    }
+
+    @And("the join request status is {string}")
+    public void theJoinRequestStatusIs(String expectedStatus) {
+        assertThat(scenarioContext.getResponse().getBody().get("status")).isEqualTo(expectedStatus);
+    }
+
+    @And("the join requests list is not empty")
+    public void theJoinRequestsListIsNotEmpty() {
+        assertThat(lastJoinRequestsList).isNotNull().isNotEmpty();
+    }
+
+    @And("the requester is now a member of the group")
+    public void theRequesterIsNowAMemberOfTheGroup() {
+        var response = restTemplate.exchange(
+                baseUrl() + "/groups/" + currentGroupId, HttpMethod.GET,
+                authorizedEntity(null), Map.class);
+        int memberCount = (int) response.getBody().get("memberCount");
+        assertThat(memberCount).isGreaterThan(1);
+    }
+
+    @When("I submit a join request for the group without authentication")
+    public void iSubmitAJoinRequestForTheGroupWithoutAuthentication() {
+        scenarioContext.setResponse(restTemplate.exchange(
+                baseUrl() + "/groups/" + currentGroupId + "/join-requests", HttpMethod.POST,
+                unauthenticatedEntity(null), Map.class));
+    }
+
+    @When("I list join requests for the group without authentication")
+    public void iListJoinRequestsForTheGroupWithoutAuthentication() {
+        scenarioContext.setResponse(restTemplate.exchange(
+                baseUrl() + "/groups/" + currentGroupId + "/join-requests", HttpMethod.GET,
+                unauthenticatedEntity(null), Map.class));
+    }
+
+    @When("I handle a join request without authentication")
+    public void iHandleAJoinRequestWithoutAuthentication() {
+        UUID placeholderRequestId = UUID.randomUUID();
+        Map<String, String> body = Map.of("action", "APPROVE");
+        scenarioContext.setResponse(restTemplate.exchange(
+                baseUrl() + "/groups/" + currentGroupId + "/join-requests/" + placeholderRequestId,
+                HttpMethod.PUT,
+                unauthenticatedEntity(body), Map.class));
+    }
+
+    @And("a non-existent join request id")
+    public void aNonExistentJoinRequestId() {
+        lastJoinRequestId = UUID.randomUUID();
+    }
+
+    @When("I handle the join request with no action")
+    public void iHandleTheJoinRequestWithNoAction() {
+        scenarioContext.setResponse(restTemplate.exchange(
+                baseUrl() + "/groups/" + currentGroupId + "/join-requests/" + lastJoinRequestId,
+                HttpMethod.PUT,
+                authorizedEntity(Map.of()), Map.class));
+    }
+
+    @And("I have denied the join request")
+    public void iHaveDeniedTheJoinRequest() {
+        Map<String, String> body = Map.of("action", "DENY");
+        restTemplate.exchange(
+                baseUrl() + "/groups/" + currentGroupId + "/join-requests/" + lastJoinRequestId, HttpMethod.PUT,
+                authorizedEntity(body), Map.class);
+    }
+
+    @And("the join request resolver is set")
+    public void theJoinRequestResolverIsSet() {
+        assertThat(scenarioContext.getResponse().getBody().get("resolvedBy")).isNotNull();
+        assertThat(scenarioContext.getResponse().getBody().get("resolvedAt")).isNotNull();
+    }
+
+    @And("the join requests list is empty")
+    public void theJoinRequestsListIsEmpty() {
+        assertThat(lastJoinRequestsList).isNotNull().isEmpty();
     }
 
     // ── Helpers ─────────────────────────────────────────────────────────────
