@@ -32,12 +32,14 @@ public class GroupRepositoryAdapter implements GroupRepositoryPort {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Optional<Group> findById(UUID groupId) {
         return groupJpaRepository.findById(groupId)
                 .map(GroupPersistenceMapper::toDomain);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public PagedResult<Group> findAllByMemberId(UUID userId, int page, int size) {
         Page<GroupJpaEntity> groupPage = groupJpaRepository.findAllByMemberUserId(userId, PageRequest.of(page, size));
         List<Group> groups = groupPage.getContent().stream()

@@ -196,10 +196,11 @@ public class GroupController {
     @PostMapping("/{groupId}/invitations")
     @ResponseStatus(HttpStatus.CREATED)
     public GroupInvitationResponse createInvitation(@PathVariable UUID groupId,
-                                                     @Valid @RequestBody CreateGroupInvitationRequest request,
+                                                     @Valid @RequestBody(required = false) CreateGroupInvitationRequest request,
                                                      Authentication authentication) {
         UUID userId = (UUID) authentication.getPrincipal();
-        GroupInvitation invitation = createGroupInvitationPort.execute(request.toCommand(groupId, userId));
+        CreateGroupInvitationRequest effectiveRequest = request != null ? request : new CreateGroupInvitationRequest(null);
+        GroupInvitation invitation = createGroupInvitationPort.execute(effectiveRequest.toCommand(groupId, userId));
         return GroupInvitationResponseMapper.toResponse(invitation);
     }
 

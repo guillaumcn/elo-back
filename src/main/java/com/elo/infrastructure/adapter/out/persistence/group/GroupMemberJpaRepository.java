@@ -2,6 +2,7 @@ package com.elo.infrastructure.adapter.out.persistence.group;
 
 import com.elo.domain.group.model.MemberRole;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -16,7 +17,9 @@ public interface GroupMemberJpaRepository extends JpaRepository<GroupMemberJpaEn
 
     int countByGroupId(UUID groupId);
 
-    void deleteByGroupId(UUID groupId);
+    @Modifying(clearAutomatically = true)
+    @Query("DELETE FROM GroupMemberJpaEntity m WHERE m.groupId = :groupId")
+    void deleteByGroupId(@Param("groupId") UUID groupId);
 
     @Query("SELECT m.groupId FROM GroupMemberJpaEntity m WHERE m.userId = :userId")
     List<UUID> findGroupIdsByUserId(@Param("userId") UUID userId);
